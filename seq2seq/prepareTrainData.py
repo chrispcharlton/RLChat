@@ -1,5 +1,5 @@
 from requirements import *
-from vocab import PAD_token, EOS_token
+from seq2seq.vocab import PAD_token, EOS_token
 
 def indexesFromSentence(voc, sentence):
     return [voc.word2index[word] for word in sentence.split(' ')] + [EOS_token]

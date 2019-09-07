@@ -1,9 +1,9 @@
 from requirements import *
-from vocab import loadPrepareData
-from prepareTrainData import batch2TrainData
-from processText import loadLines, loadConversations, extractSentencePairs, printLines, trimRareWords
-from seq2seq import EncoderRNN, LuongAttnDecoderRNN
-from train import trainIters
+from seq2seq.vocab import loadPrepareData
+from seq2seq.prepareTrainData import batch2TrainData
+from seq2seq.processText import loadLines, loadConversations, extractSentencePairs, printLines, trimRareWords
+from seq2seq.models import EncoderRNN, LuongAttnDecoderRNN
+from seq2seq.trainingMethods import trainIters
 
 corpus_name = "cornell movie-dialogs corpus"
 corpus = os.path.join("data", corpus_name)

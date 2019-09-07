@@ -1,6 +1,6 @@
 from requirements import *
-from vocab import MAX_LENGTH, SOS_token, normalizeString
-from prepareTrainData import batch2TrainData, indexesFromSentence
+from seq2seq.vocab import MAX_LENGTH, SOS_token, normalizeString
+from seq2seq.prepareTrainData import batch2TrainData, indexesFromSentence
 
 TEACHER_FORCING_RATIO = 1.0
 
