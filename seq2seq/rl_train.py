@@ -42,7 +42,7 @@ class Env(object):
         return reward, state, done
 
     def calculate_reward(self, action):
-        return 0.5
+        return round(0.1 * len(action.replace('.', '').split()), 2)
 
     def is_done(self, state):
         return random.random() > 0.7
@@ -91,10 +91,11 @@ decoder_optimizer = optim.Adam(decoder.parameters(), lr=learning_rate * decoder_
 
 searcher = RLGreedySearchDecoder(encoder, decoder, voc)
 
+
 memory = ReplayMemory(1000)
 
 # RL training loop
-num_episodes = 5000
+num_episodes = 50
 env = Env(voc)
 for i_episode in range(num_episodes):
     print("Episode", i_episode+1)
@@ -106,9 +107,9 @@ for i_episode in range(num_episodes):
         reward, next_state, done = env.step(action)
         reward = torch.tensor([reward], device=device)
         action = env.state2tensors([action])[0]
-        memory.push(state, action, next_state, reward)
+        memory.push(state, action, next_state, reward, done)
         state = next_state
-        optimize_model(searcher, memory, encoder_optimizer, decoder_optimizer)
+    optimize_model(searcher, memory, encoder_optimizer, decoder_optimizer)
         # if done:
             # record episode duration?
 

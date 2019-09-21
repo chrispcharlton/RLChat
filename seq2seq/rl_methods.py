@@ -5,7 +5,7 @@ from collections import namedtuple
 
 
 Transition = namedtuple('Transition',
-                        ('state', 'action', 'next_state', 'reward'))
+                        ('state', 'action', 'next_state', 'reward', 'done'))
 
 
 class ReplayMemory(object):
@@ -29,7 +29,7 @@ class ReplayMemory(object):
         return len(self.memory)
 
 
-BATCH_SIZE = 128
+BATCH_SIZE = 64
 GAMMA = 0.999
 
 class RLGreedySearchDecoder(nn.Module):
@@ -98,54 +98,96 @@ def optimize_model(searcher, memory, en_optimizer, de_optimizer):
     if len(memory) < BATCH_SIZE:
         return
     transitions = memory.sample(BATCH_SIZE)
-    # Transpose the batch (see https://stackoverflow.com/a/19343/3343043 for
-    # detailed explanation). This converts batch-array of Transitions
-    # to Transition of batch-arrays.
-    batch = Transition(*zip(*transitions))
 
-    # Compute a mask of non-final states and concatenate the batch elements
-    # (a final state would've been the one after which simulation ended)
+    est = []
+    actual = []
 
-    #below line dtype changed to bool form uint8 - deprecated error message
-    non_final_mask = torch.tensor(tuple(map(lambda s: s is not None,
-                                          batch.next_state)), device=device, dtype=torch.bool)
+    for n in transitions:
+    # Compute Q(s_t) - Q_value of the starting state for transition n
+    # searcher outputs tensor of value for each word in the action sequence
+    # max value is expected reward (maybe switch to average value?)
+        est.append(searcher(n.state)[1].max())
 
-    #changed cat to stack in below
-    non_final_next_states = torch.cat([s[0] for s in batch.next_state
-                                                if s is not None])
+        # if s_t is terminal then true reward is the reward given by environment
+        # if not then sum actual reward with Q value of expected future reward
+        if n.done:
+            q = n.reward
+        else:
+            q_next_state = searcher(n.state)[1].max()
+            q = (q_next_state * GAMMA) + n.reward
 
-    state_batch1 = torch.stack([s[0] for s in batch.state]) #changed cat to stack
-    state_batch2 = torch.stack([s[1] for s in batch.state])
-    action_batch = torch.cat(batch.action)
-    reward_batch = torch.cat(batch.reward)
-    # Compute Q(s_t, a) - the model computes Q(s_t), then we select the
-    # columns of actions taken. These are the actions which would've been taken
-    # for each batch state according to policy_net
-
-    state_action_values = searcher((state_batch1, state_batch2))
-
-    # Compute V(s_{t+1}) for all next states.
-    # Expected values of actions for non_final_next_states are computed based
-    # on the "older" target_net; selecting their best reward with max(1)[0].
-    # This is merged based on the mask, such that we'll have either the expected
-    # state value or 0 in case the state was final.
-    next_state_values = torch.zeros(BATCH_SIZE, device=device)
-    next_state_values[non_final_mask] = searcher(non_final_next_states).max(1)[0].detach()
-    # Compute the expected Q values
-
-    expected_state_action_values = (next_state_values * GAMMA) + reward_batch
+        actual.append(q)
 
     # Compute Huber loss
-    loss = F.smooth_l1_loss(state_action_values, expected_state_action_values.unsqueeze(1))
+    est = torch.stack(est)
+    actual = torch.stack(actual)
+    loss = F.smooth_l1_loss(est, actual)
+    print ("loss =", loss)
 
     # Optimize the model
     en_optimizer.zero_grad()
     de_optimizer.zero_grad()
     loss.backward()
-    for param in searcher.encoder.parameters():
-        param.grad.data.clamp_(-1, 1)
-    for param in searcher.decoder.parameters():
-        param.grad.data.clamp_(-1, 1)
+    ## Not sure below is necessary
+    # for param in searcher.encoder.parameters():
+    #     param.grad.data.clamp_(-1, 1)
+    # for param in searcher.decoder.parameters():
+    #     param.grad.data.clamp_(-1, 1)
     en_optimizer.step()
-    de_optimizer.zero_grad()
+    de_optimizer.step()
 
+
+# def optimize_model(searcher, memory, en_optimizer, de_optimizer):
+#     if len(memory) < BATCH_SIZE:
+#         return
+#     transitions = memory.sample(BATCH_SIZE)
+#     # Transpose the batch (see https://stackoverflow.com/a/19343/3343043 for
+#     # detailed explanation). This converts batch-array of Transitions
+#     # to Transition of batch-arrays.
+#     batch = Transition(*zip(*transitions))
+#
+#     # Compute a mask of non-final states and concatenate the batch elements
+#     # (a final state would've been the one after which simulation ended)
+#
+#     #below line dtype changed to bool form uint8 - deprecated error message
+#     non_final_mask = torch.tensor(tuple(map(lambda s: s is not None,
+#                                           batch.next_state)), device=device, dtype=torch.bool)
+#
+#     #changed cat to stack in below
+#     non_final_next_states = torch.cat([s[0] for s in batch.next_state
+#                                                 if s is not None])
+#
+#     state_batch1 = torch.stack([s[0] for s in batch.state]) #changed cat to stack
+#     action_batch = torch.cat(batch.action)
+#     reward_batch = torch.cat(batch.reward)
+#     # Compute Q(s_t, a) - the model computes Q(s_t), then we select the
+#     # columns of actions taken. These are the actions which would've been taken
+#     # for each batch state according to policy_net
+#
+#     state_action_values = searcher((state_batch1, state_batch2))
+#
+#     # Compute V(s_{t+1}) for all next states.
+#     # Expected values of actions for non_final_next_states are computed based
+#     # on the "older" target_net; selecting their best reward with max(1)[0].
+#     # This is merged based on the mask, such that we'll have either the expected
+#     # state value or 0 in case the state was final.
+#     next_state_values = torch.zeros(BATCH_SIZE, device=device)
+#     next_state_values[non_final_mask] = searcher(non_final_next_states).max(1)[0].detach()
+#     # Compute the expected Q values
+#
+#     expected_state_action_values = (next_state_values * GAMMA) + reward_batch
+#
+#     # Compute Huber loss
+#     loss = F.smooth_l1_loss(state_action_values, expected_state_action_values.unsqueeze(1))
+#
+#     # Optimize the model
+#     en_optimizer.zero_grad()
+#     de_optimizer.zero_grad()
+#     loss.backward()
+#     for param in searcher.encoder.parameters():
+#         param.grad.data.clamp_(-1, 1)
+#     for param in searcher.decoder.parameters():
+#         param.grad.data.clamp_(-1, 1)
+#     en_optimizer.step()
+#     de_optimizer.zero_grad()
+#
