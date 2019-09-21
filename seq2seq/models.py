@@ -15,6 +15,7 @@ class EncoderRNN(nn.Module):
     def forward(self, input_seq, input_lengths, hidden=None):
         # Convert word indexes to embeddings
         embedded = self.embedding(input_seq)
+
         # Pack padded batch of sequences for RNN module
         packed = nn.utils.rnn.pack_padded_sequence(embedded, input_lengths)
         # Forward pass through GRU

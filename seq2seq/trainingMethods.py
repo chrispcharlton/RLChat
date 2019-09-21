@@ -1,6 +1,8 @@
 from requirements import *
 from seq2seq.vocab import MAX_LENGTH, SOS_token, normalizeString
 from seq2seq.prepareTrainData import batch2TrainData, indexesFromSentence
+from seq2seq.vocab import *
+from collections import namedtuple
 
 TEACHER_FORCING_RATIO = 1.0
 
@@ -10,6 +12,8 @@ def maskNLLLoss(inp, target, mask):
     loss = crossEntropy.masked_select(mask).mean()
     loss = loss.to(device)
     return loss, nTotal.item()
+
+
 
 def train(input_variable, lengths, target_variable, mask, max_target_len, encoder, decoder, embedding,
           encoder_optimizer, decoder_optimizer, batch_size, clip, max_length=MAX_LENGTH):
