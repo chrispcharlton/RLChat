@@ -3,6 +3,23 @@ from seq2seq.vocab import MAX_LENGTH, SOS_token, normalizeString
 from seq2seq.prepareTrainData import batch2TrainData, indexesFromSentence
 from collections import namedtuple
 
+def evaluateInput(searcher, env):
+    input_sentence = ''
+    while(1):
+        try:
+            # Get input sentence
+            input_sentence = input('> ')
+            # Check if it is quit case
+            if input_sentence == 'q' or input_sentence == 'quit': break
+            # Normalize sentence
+            reward, next_state, done = env.step(input_sentence)
+            action = searcher.select_action(next_state)
+            reward, next_state, done = env.step(action)
+            print('Bot:', action)
+
+        except KeyError:
+            print("Error: Encountered unknown word.")
+
 
 Transition = namedtuple('Transition',
                         ('state', 'action', 'next_state', 'reward', 'done'))
@@ -122,12 +139,12 @@ def optimize_model(searcher, memory, en_optimizer, de_optimizer):
     est = torch.stack(est)
     actual = torch.stack(actual)
     loss = F.smooth_l1_loss(est, actual)
+    loss.backward()
     print ("loss =", loss)
 
     # Optimize the model
     en_optimizer.zero_grad()
     de_optimizer.zero_grad()
-    loss.backward()
     ## Not sure below is necessary
     # for param in searcher.encoder.parameters():
     #     param.grad.data.clamp_(-1, 1)
@@ -135,6 +152,8 @@ def optimize_model(searcher, memory, en_optimizer, de_optimizer):
     #     param.grad.data.clamp_(-1, 1)
     en_optimizer.step()
     de_optimizer.step()
+
+    return loss
 
 
 # def optimize_model(searcher, memory, en_optimizer, de_optimizer):
