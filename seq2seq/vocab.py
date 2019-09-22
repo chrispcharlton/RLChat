@@ -1,11 +1,13 @@
-from requirements import *
+from _requirements import *
+from processText import load_alexa_pairs
 
 # Default word tokens
 PAD_token = 0  # Used for padding short sentences
 SOS_token = 1  # Start-of-sentence token
 EOS_token = 2  # End-of-sentence token
 
-MAX_LENGTH = 10  # Maximum sentence length to consider
+MAX_LENGTH = 30  # Maximum sentence length to consider
+
 
 class Voc:
     def __init__(self, name):
@@ -93,6 +95,25 @@ def loadPrepareData(corpus, corpus_name, datafile, save_dir):
     print("Start preparing training data ...")
     voc, pairs = readVocs(datafile, corpus_name)
     print("Read {!s} sentence pairs".format(len(pairs)))
+    pairs = filterPairs(pairs)
+    print("Trimmed to {!s} sentence pairs".format(len(pairs)))
+    print("Counting words...")
+    for pair in pairs:
+        voc.addSentence(pair[0])
+        voc.addSentence(pair[1])
+    print("Counted words:", voc.num_words)
+    return voc, pairs
+
+def readAlexa(fname='train.json'):
+    pairs = [[t.utterance, t.response] for t in load_alexa_pairs(fname)]
+    voc = Voc('Alexa')
+    return voc, pairs
+
+def loadAlexaData(fname='train.json'):
+    print("Start preparing training data ...")
+    # load pairs and initialise Voc
+    voc, pairs = readAlexa(fname)
+    # filter pairs longer than MAX_LENGTH
     pairs = filterPairs(pairs)
     print("Trimmed to {!s} sentence pairs".format(len(pairs)))
     print("Counting words...")

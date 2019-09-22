@@ -1,0 +1,1 @@
+from prepareTrainData import indexesFromSentence

@@ -1,4 +1,6 @@
-from seq2seq.rl_methods import *
+from rl_methods import *
+from seq2seq import indexesFromSentence
+
 
 class Env(object):
     def __init__(self, voc, state_length=1):

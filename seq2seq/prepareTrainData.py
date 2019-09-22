@@ -1,4 +1,4 @@
-from requirements import *
+from _requirements import *
 from seq2seq.vocab import PAD_token, EOS_token
 
 def indexesFromSentence(voc, sentence):

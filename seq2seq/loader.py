@@ -1,8 +1,8 @@
-from requirements import *
+from _requirements import *
 from seq2seq.models import EncoderRNN, LuongAttnDecoderRNN
 from seq2seq.vocab import Voc
-from seq2seq.rl_methods import RLGreedySearchDecoder
-from seq2seq._config import *
+from rl_methods import RLGreedySearchDecoder
+from _config import *
 
 def load_latest_state_dict(savepath='data\\save\\cb_model\\cornell movie-dialogs corpus\\2-2_500'):
     try:

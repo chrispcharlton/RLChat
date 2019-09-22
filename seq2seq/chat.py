@@ -1,4 +1,4 @@
-from requirements import *
+from _requirements import *
 from seq2seq.trainingMethods import GreedySearchDecoder, evaluateInput
 from seq2seq.models import EncoderRNN, LuongAttnDecoderRNN
 from seq2seq.vocab import Voc

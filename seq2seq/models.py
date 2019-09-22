@@ -1,4 +1,4 @@
-from requirements import *
+from _requirements import *
 
 class EncoderRNN(nn.Module):
     def __init__(self, hidden_size, embedding, n_layers=1, dropout=0):

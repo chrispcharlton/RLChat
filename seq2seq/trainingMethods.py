@@ -1,4 +1,4 @@
-from requirements import *
+from _requirements import *
 from seq2seq.vocab import MAX_LENGTH, SOS_token, normalizeString
 from seq2seq.prepareTrainData import batch2TrainData, indexesFromSentence
 from seq2seq.vocab import *

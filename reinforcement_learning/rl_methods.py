@@ -1,9 +1,9 @@
-from requirements import *
-from seq2seq.vocab import MAX_LENGTH, SOS_token, normalizeString
-from seq2seq.prepareTrainData import batch2TrainData, indexesFromSentence
+from _requirements import *
+from seq2seq.vocab import MAX_LENGTH, SOS_token
 from collections import namedtuple
 
-def evaluateInput(searcher, env):
+
+def chat(searcher, env):
     input_sentence = ''
     while(1):
         try:
@@ -114,46 +114,49 @@ class RLGreedySearchDecoder(nn.Module):
 def optimize_model(searcher, memory, en_optimizer, de_optimizer):
     if len(memory) < BATCH_SIZE:
         return
-    transitions = memory.sample(BATCH_SIZE)
+    else:
+        print("Optimising...")
 
-    est = []
-    actual = []
+        transitions = memory.sample(BATCH_SIZE)
 
-    for n in transitions:
-    # Compute Q(s_t) - Q_value of the starting state for transition n
-    # searcher outputs tensor of value for each word in the action sequence
-    # max value is expected reward (maybe switch to average value?)
-        est.append(searcher(n.state)[1].max())
+        est = []
+        actual = []
 
-        # if s_t is terminal then true reward is the reward given by environment
-        # if not then sum actual reward with Q value of expected future reward
-        if n.done:
-            q = n.reward
-        else:
-            q_next_state = searcher(n.state)[1].max()
-            q = (q_next_state * GAMMA) + n.reward
+        for n in transitions:
+        # Compute Q(s_t) - Q_value of the starting state for transition n
+        # searcher outputs tensor of value for each word in the action sequence
+        # max value is expected reward (maybe switch to average value?)
+            est.append(searcher(n.state)[1].max())
 
-        actual.append(q)
+            # if s_t is terminal then true reward is the reward given by environment
+            # if not then sum actual reward with Q value of expected future reward
+            if n.done:
+                q = n.reward
+            else:
+                q_next_state = searcher(n.state)[1].max()
+                q = (q_next_state * GAMMA) + n.reward
 
-    # Compute Huber loss
-    est = torch.stack(est)
-    actual = torch.stack(actual)
-    loss = F.smooth_l1_loss(est, actual)
-    loss.backward()
-    print ("loss =", loss)
+            actual.append(q)
 
-    # Optimize the model
-    en_optimizer.zero_grad()
-    de_optimizer.zero_grad()
-    ## Not sure below is necessary
-    # for param in searcher.encoder.parameters():
-    #     param.grad.data.clamp_(-1, 1)
-    # for param in searcher.decoder.parameters():
-    #     param.grad.data.clamp_(-1, 1)
-    en_optimizer.step()
-    de_optimizer.step()
+        # Compute Huber loss
+        est = torch.stack(est)
+        actual = torch.stack(actual)
+        loss = F.smooth_l1_loss(est, actual)
+        loss.backward()
+        print ("loss =", loss)
 
-    return loss
+        # Optimize the model
+        en_optimizer.zero_grad()
+        de_optimizer.zero_grad()
+        ## Not sure below is necessary
+        # for param in searcher.encoder.parameters():
+        #     param.grad.data.clamp_(-1, 1)
+        # for param in searcher.decoder.parameters():
+        #     param.grad.data.clamp_(-1, 1)
+        en_optimizer.step()
+        de_optimizer.step()
+
+        return loss
 
 
 # def optimize_model(searcher, memory, en_optimizer, de_optimizer):

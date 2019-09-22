@@ -1,5 +1,9 @@
-from requirements import *
+from _requirements import *
+from collections import namedtuple
+import json
 
+Pair = namedtuple('Pair', ('utterance', 'response', 'rating'))
+alexa_path = './data/amazon'
 
 def printLines(file, n=10):
     with open(file, 'rb') as datafile:
@@ -82,3 +86,11 @@ def trimRareWords(voc, pairs, MIN_COUNT):
 
     print("Trimmed from {} pairs to {}, {:.4f} of total".format(len(pairs), len(keep_pairs), len(keep_pairs) / len(pairs)))
     return keep_pairs
+
+def load_alexa_pairs(fname='train.json'):
+    pairs = []
+    data = json.loads(open(os.path.join(alexa_path, fname), 'r').read())
+    for conversation in data.values():
+        for utterance, response in zip(conversation['content'][:-1],conversation['content'][1:]):
+            pairs.append(Pair(utterance=utterance['message'], response=response['message'], rating=response['turn_rating']))
+    return pairs
