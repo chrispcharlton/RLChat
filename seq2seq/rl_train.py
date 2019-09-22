@@ -11,6 +11,9 @@ episode, encoder, decoder, encoder_optimizer, decoder_optimizer, searcher, voc =
 memory = ReplayMemory(1000)
 env = Env(voc)
 
+# set episode number to 0 as starting from scratch / warm-started model. Remove if loading rl-trained model
+episode = 0
+
 # RL training loop
 num_episodes = 50
 for i_episode in range(1, num_episodes+1):

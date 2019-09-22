@@ -33,7 +33,7 @@ def saveStateDict(episode, encoder, decoder, encoder_optimizer, decoder_optimize
     }, os.path.join(directory, '{}_{}.tar'.format(episode, 'checkpoint')))
 
 
-def loadModel(gpu=False, hidden_size=hidden_size, encoder_n_layers=encoder_n_layers, decoder_n_layers=decoder_n_layers, dropout=dropout, attn_model=attn_model, learning_rate=learning_rate, decoder_learning_ratio=decoder_learning_ratio,
+def loadModel(hidden_size=hidden_size, encoder_n_layers=encoder_n_layers, decoder_n_layers=decoder_n_layers, dropout=dropout, attn_model=attn_model, learning_rate=learning_rate, decoder_learning_ratio=decoder_learning_ratio,
               directory='data\\save\\cb_model\\cornell movie-dialogs corpus\\2-2_500'):
     state_dict = load_latest_state_dict(directory)
     episode = state_dict['iteration']
