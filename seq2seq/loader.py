@@ -50,6 +50,7 @@ def loadModel(hidden_size=hidden_size, encoder_n_layers=encoder_n_layers, decode
     # Initialize word embeddings
     embedding = nn.Embedding(voc.num_words, hidden_size)
     embedding.load_state_dict(embedding_sd)
+    embedding.to(device)
     # Initialize encoder & decoder models
     encoder = EncoderRNN(hidden_size, embedding, encoder_n_layers, dropout)
     decoder = LuongAttnDecoderRNN(attn_model, embedding, hidden_size, voc.num_words, decoder_n_layers, dropout)
