@@ -1,3 +1,4 @@
+from _config import MAX_LENGTH
 from torch.utils.data import Dataset, DataLoader
 from collections import namedtuple
 import random
@@ -5,7 +6,7 @@ import json
 import os
 
 Pair = namedtuple('Pair', ('utterance', 'response', 'rating', 'conversation_id'))
-numeric_ratings = {'Poor':1, 'Not Good':2, 'Passable':3, 'Good':4, 'Excellent':5}
+numeric_ratings = {'Poor':0, 'Not Good':1, 'Passable':2, 'Good':3, 'Excellent':4}
 
 
 def load_alexa_pairs(fname='train.json', dir='./data/amazon'):
@@ -13,7 +14,7 @@ def load_alexa_pairs(fname='train.json', dir='./data/amazon'):
     data = json.loads(open(os.path.join(dir, fname), 'r').read())
     for c_id, conversation in data.items():
         for utterance, response in zip(conversation['content'][:-1],conversation['content'][1:]):
-            if response['turn_rating'] != '':
+            if response['turn_rating'] != '' and len(utterance['message'].split(' ')) < MAX_LENGTH and len(response['message'].split(' ')) < MAX_LENGTH:
                 pairs.append(Pair(utterance=utterance['message'], response=response['message'], rating=numeric_ratings[response['turn_rating']], conversation_id=c_id))
     return pairs
 
