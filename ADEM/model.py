@@ -18,21 +18,14 @@ class ADEM(nn.Module):
                           dropout=(0 if n_layers == 1 else dropout), bidirectional=True)
         self.fc = nn.Linear(hidden_size, output_size)
 
-    def forward(self, input_seq, input_lengths, hidden=None):
-        # batch_size = input_seq.size(0)
-        # input_seq = input_seq.t()
-        # # Convert word indexes to embeddings
-        # embedded = self.embedding(input_seq)
-        # hidden = self._init_hidden(batch_size)
-        # output, hidden = self.gru(embedded, hidden)
-        # fc_output = self.fc(hidden)
-        # return fc_output
-
+    def forward(self, state, hidden=None):
         # Convert word indexes to  embeddings
-        embedded = self.embedding(input_seq)
+        input_lengths = torch.LongTensor([len(s) for s in state])
 
-        batch_size = input_seq.size(0)
-        # hidden = self._init_hidden(batch_size) if hidden is None else hidden
+        embedded = self.embedding(state.t())
+
+        batch_size = state.size(0)
+        hidden = self._init_hidden(batch_size) if hidden is None else hidden
 
         # Pack padded batch of sequences for RNN module
         packed = nn.utils.rnn.pack_padded_sequence(embedded, input_lengths)
@@ -60,6 +53,6 @@ class ADEM(nn.Module):
         return pred.data.max(1, keepdim=True)[1]
 
     def _init_hidden(self, batch_size):
-        hidden = torch.zeros(self.n_layers, batch_size, self.hidden_size)
+        hidden = torch.zeros(self.n_layers*(1+int(self.gru.bidirectional)), batch_size, self.hidden_size)
         return Variable(hidden)
 

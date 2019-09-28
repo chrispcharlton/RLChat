@@ -17,13 +17,13 @@ def prepare_batch(batch, voc):
     target = batch.rating
     target = target[perm_idx]
 
-    return seq_tensor.t(), lengths, target
+    return seq_tensor, target
 
 def train_epoch(epoch, model, optimizer, criterion, data_loader, voc):
     total_loss = 0
     for i, batch in enumerate(data_loader, 1):
-        seq, lengths, target = prepare_batch(batch, voc)
-        output = model(seq, lengths)
+        seq, target = prepare_batch(batch, voc)
+        output = model(seq)
         loss = criterion(output, target)
         total_loss += loss.item()
         model.zero_grad()
@@ -31,8 +31,8 @@ def train_epoch(epoch, model, optimizer, criterion, data_loader, voc):
         optimizer.step()
 
         if i % 10 == 0:
-            print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.2f}'.format(epoch, i * len(batch), len(data_loader.dataset),
-                                        100. * i * len(batch) / len(data_loader.dataset), total_loss / i * len(batch)))
+            print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.2f}'.format(epoch, i * len(batch[0]), len(data_loader.dataset),
+                                        100. * i * len(batch[0]) / len(data_loader.dataset), total_loss / i * len(batch)))
     return total_loss
 
 def test_epoch(model, data_loader, voc):
@@ -42,8 +42,8 @@ def test_epoch(model, data_loader, voc):
     train_data_size = len(data_loader.dataset)
 
     for batch in data_loader:
-        seq, lengths, target = prepare_batch(batch, voc)
-        pred = model.predict(seq, lengths)
+        seq, target = prepare_batch(batch, voc)
+        pred = model.predict(seq)
         correct += pred.eq(target.data.view_as(pred)).cpu().sum()
 
     print('\nTest set: Accuracy: {}/{} ({:.0f}%)\n'.format(
