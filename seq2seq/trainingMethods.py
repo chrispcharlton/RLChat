@@ -14,7 +14,6 @@ def maskNLLLoss(inp, target, mask):
     return loss, nTotal.item()
 
 
-
 def train(input_variable, lengths, target_variable, mask, max_target_len, encoder, decoder, embedding,
           encoder_optimizer, decoder_optimizer, batch_size, clip, max_length=MAX_LENGTH):
 

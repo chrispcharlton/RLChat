@@ -1,4 +1,5 @@
 from _requirements import *
+from torch.autograd import Variable
 
 class EncoderRNN(nn.Module):
     def __init__(self, hidden_size, embedding, n_layers=1, dropout=0):
@@ -10,14 +11,15 @@ class EncoderRNN(nn.Module):
         # Initialize GRU; the input_size and hidden_size params are both set to 'hidden_size'
         #   because our input size is a word embedding with number of features == hidden_size
         self.gru = nn.GRU(hidden_size, hidden_size, n_layers,
-                          dropout=(0 if n_layers == 1 else dropout), bidirectional=True)
+                          dropout=(0 if n_layers == 1 else dropout), bidirectional=True, batch_first=False)
 
     def forward(self, input_seq, input_lengths, hidden=None):
         # Convert word indexes to embeddings
         embedded = self.embedding(input_seq)
-
+        batch_size = input_seq.size(0)
+        hidden = self._init_hidden(batch_size) if hidden is None else hidden
         # Pack padded batch of sequences for RNN module
-        packed = nn.utils.rnn.pack_padded_sequence(embedded, input_lengths)
+        packed = nn.utils.rnn.pack_padded_sequence(embedded, input_lengths, batch_first=True)
         # Forward pass through GRU
         outputs, hidden = self.gru(packed, hidden)
         # Unpack padding
@@ -26,6 +28,10 @@ class EncoderRNN(nn.Module):
         outputs = outputs[:, :, :self.hidden_size] + outputs[:, : ,self.hidden_size:]
         # Return output and final hidden state
         return outputs, hidden
+
+    def _init_hidden(self, batch_size):
+        hidden = torch.zeros(self.n_layers * (1 + self.gru.bidirectional), batch_size, self.hidden_size)
+        return Variable(hidden)
 
 # Luong attention layer
 class Attn(nn.Module):
@@ -81,7 +87,7 @@ class LuongAttnDecoderRNN(nn.Module):
         # Define layers
         self.embedding = embedding
         self.embedding_dropout = nn.Dropout(dropout)
-        self.gru = nn.GRU(hidden_size, hidden_size, n_layers, dropout=(0 if n_layers == 1 else dropout))
+        self.gru = nn.GRU(hidden_size, hidden_size, n_layers, dropout=(0 if n_layers == 1 else dropout), batch_first=False)
         self.concat = nn.Linear(hidden_size * 2, hidden_size)
         self.out = nn.Linear(hidden_size, output_size)
 

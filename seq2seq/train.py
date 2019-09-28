@@ -1,13 +1,14 @@
-from requirements import *
-from seq2seq.vocab import loadPrepareData
+from _requirements import *
+from seq2seq.vocab import loadPrepareData, loadAlexaData
 from seq2seq.prepareTrainData import batch2TrainData
 from seq2seq.processText import loadLines, loadConversations, extractSentencePairs, printLines, trimRareWords
 from seq2seq.models import EncoderRNN, LuongAttnDecoderRNN
 from seq2seq.trainingMethods import trainIters
 
+
 corpus_name = "cornell movie-dialogs corpus"
 corpus = os.path.join("data", corpus_name)
-
+corpus = os.path.join("C:\\Users\\Christopher\\PycharmProjects\\RLChat","data", corpus_name)
 # Define path to new file
 datafile = os.path.join(corpus, "formatted_movie_lines.txt")
 
@@ -49,6 +50,10 @@ MIN_COUNT = 3  # Minimum word count threshold for trimming
 
 # Trim voc and pairs
 pairs = trimRareWords(voc, pairs, MIN_COUNT)
+#
+# save_dir = os.path.join("data","amazon","models")
+# corpus_name = "Alexa"
+# voc, pairs = loadAlexaData()
 
 # Example for validation
 small_batch_size = 5

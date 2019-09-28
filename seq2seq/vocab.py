@@ -1,6 +1,6 @@
 from _requirements import *
 from _config import PAD_token, SOS_token, EOS_token, MAX_LENGTH
-from processText import load_alexa_pairs
+from seq2seq.processText import load_alexa_pairs
 
 
 class Voc:

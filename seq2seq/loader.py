@@ -1,7 +1,6 @@
 from _requirements import *
 from seq2seq.models import EncoderRNN, LuongAttnDecoderRNN
 from seq2seq.vocab import Voc
-from rl_methods import RLGreedySearchDecoder
 from _config import *
 
 def load_latest_state_dict(savepath='data\\save\\cb_model\\cornell movie-dialogs corpus\\2-2_500'):
@@ -81,9 +80,7 @@ def loadModel(hidden_size=hidden_size, encoder_n_layers=encoder_n_layers, decode
                     state[k] = v.cuda()
     print('Optimizers built and ready to go!')
 
-    searcher = RLGreedySearchDecoder(encoder, decoder, voc)
-
-    return episode, encoder, decoder, encoder_optimizer, decoder_optimizer, searcher, voc
+    return episode, encoder, decoder, encoder_optimizer, decoder_optimizer, voc
 
 if __name__ == '__main__':
-    encoder, decoder, encoder_optimizer, decoder_optimizer, searcher, voc = loadModel()
+    encoder, decoder, encoder_optimizer, decoder_optimizer, voc = loadModel()
