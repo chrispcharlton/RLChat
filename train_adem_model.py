@@ -7,7 +7,7 @@ from torch.utils.data import DataLoader
 from seq2seq import loadAlexaData
 
 N_EPOCHS = 1
-BATCH_SIZE = 64
+BATCH_SIZE = 256
 output_size = 5
 
 ##TODO: shuffle train/test between epochs as some words are exclusive between the pre-defined sets
