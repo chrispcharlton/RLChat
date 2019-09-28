@@ -41,7 +41,7 @@ class ADEM(nn.Module):
         # Return output and final hidden state
         return output
 
-    def predict(self, input_seq, input_lengths, hidden=None):
+    def predict(self, state, hidden=None):
         '''
         Gets model output (tensors) and converts to numeric rating
         :param input_seq:
@@ -49,7 +49,7 @@ class ADEM(nn.Module):
         :param hidden:
         :return: number 0 - 4 corresponding to rating from Alexa dataset
         '''
-        pred = self(input_seq, input_lengths, hidden)
+        pred = self(state, hidden)
         return pred.data.max(1, keepdim=True)[1]
 
     def _init_hidden(self, batch_size):
