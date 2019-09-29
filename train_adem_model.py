@@ -12,7 +12,7 @@ output_size = 5
 
 ##TODO: shuffle train/test between epochs as some words are exclusive between the pre-defined sets
 
-save_dir = '/data/amazon/models/adem/'
+save_dir = './data/amazon/models/adem/'
 
 voc, pairs = loadAlexaData()
 

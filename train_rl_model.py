@@ -4,4 +4,4 @@ from reinforcement_learning import train, chat
 policy, env = train()
 
 # evaluate trained model
-# chat(policy, env)
+chat(policy, env)

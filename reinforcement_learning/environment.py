@@ -1,13 +1,16 @@
 from reinforcement_learning.rl_methods import *
+from ADEM import loadADEM
 from seq2seq import indexesFromSentence
 from ADEM import model
 
 
 class Env(object):
     def __init__(self, voc, state_length=1):
+        print('Initialising Environment...')
         self.voc = voc
         self.state_length = state_length
         self.reset()
+        self.adem = loadADEM()
 
     @property
     def state(self):
@@ -32,17 +35,17 @@ class Env(object):
         self._state = [" ".join(['hello'])] * self.state_length
 
     def step(self, action):
-        reward = self.calculate_reward(action)
         next_state = [action] + self._state[:-1]
         next_state = self.state2tensors(next_state)
+        reward = self.calculate_reward(next_state)
         done = self.is_done(next_state)
         if done:
             next_state = None
         return reward, next_state, done
 
-    def calculate_reward(self, action):
+    def calculate_reward(self, next_state):
         # TODO: reward should probably be a vector of whole sentence, with reward for each token
-        return round(0.1 * len(action.replace('.', '').split()), 2)
+        return float(self.adem.predict(next_state))
 
     def is_done(self, state):
         return random.random() > 0.7

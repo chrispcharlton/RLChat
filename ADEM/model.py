@@ -1,9 +1,21 @@
 from _requirements import *
 from torch.autograd import Variable
-import numpy as np
-from seq2seq import loadModel
-from seq2seq import loadAlexaData, batch2TrainData
+from seq2seq import load_latest_state_dict
+from seq2seq import Voc
 from _config import *
+
+def loadADEM(hidden_size=hidden_size, output_size=5, n_layers=1, dropout=0, path='.\\data\\amazon\\models\\adem\\'):
+    state_dict = load_latest_state_dict(path)
+    voc = Voc('placeholder_name')
+    voc.__dict__ = state_dict['voc_dict']
+
+    print('Building ADEM model ...')
+    embedding = nn.Embedding(voc.num_words, hidden_size)
+    embedding.load_state_dict(state_dict['embedding'])
+    embedding.to(device)
+    model = ADEM(hidden_size, output_size, embedding, n_layers, dropout)
+    model.load_state_dict(state_dict['model'])
+    return model
 
 class ADEM(nn.Module):
     def __init__(self, hidden_size, output_size, embedding, n_layers=1, dropout=0):
@@ -50,7 +62,7 @@ class ADEM(nn.Module):
         :return: number 0 - 4 corresponding to rating from Alexa dataset
         '''
         pred = self(state, hidden)
-        return pred.data.max(1, keepdim=True)[1]
+        return pred.data.max(1, keepdim=True)[1].item()
 
     def _init_hidden(self, batch_size):
         hidden = torch.zeros(self.n_layers*(1+int(self.gru.bidirectional)), batch_size, self.hidden_size)
