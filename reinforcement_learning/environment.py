@@ -1,5 +1,6 @@
 from reinforcement_learning.rl_methods import *
 from seq2seq import indexesFromSentence
+from ADEM import model
 
 
 class Env(object):
