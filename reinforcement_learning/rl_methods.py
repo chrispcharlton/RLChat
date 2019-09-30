@@ -4,23 +4,23 @@ from collections import namedtuple
 
 
 
-def chat(searcher, env):
+def chat(policy, env):
     input_sentence = ''
+    env.reset()
+    env._state = []
+
     while(1):
         try:
-            # Get input sentence
             input_sentence = input('> ')
-            # Check if it is quit case
-            if input_sentence == 'q' or input_sentence == 'quit': break
-            # Normalize sentence
-            reward, next_state, done = env.step(input_sentence)
-            action = searcher.select_action(next_state)
-            reward, next_state, done = env.step(action)
-            print('Bot:', action)
-
+            if input_sentence == 'q':
+                break
+            input_sentence = env.sentence2tensor(input_sentence)
+            env.update_state(input_sentence)
+            response, tensor = policy.response(env.state)
+            env.update_state(tensor)
+            print('Bot:', response)
         except KeyError:
             print("Error: Encountered unknown word.")
-
 
 Transition = namedtuple('Transition',
                         ('state', 'action', 'next_state', 'reward', 'done', 'prob'))
@@ -87,18 +87,10 @@ class RLGreedySearchDecoder(nn.Module):
         # Return collections of word tokens and scores
         return all_tokens.view(batch_size,-1), all_scores.view(batch_size,-1)
 
-    def select_action(self, state, max_length=MAX_LENGTH):
-        """
-        selects an action given state
-        :param state:
-        :param max_length:
-        :return:
-        """
-        ## TODO: add e-greedy?
-        with torch.no_grad():
-            tokens, scores = self(state, max_length)
+    def response(self, state):
+        tokens, scores = self(state)
         decoded_words = [self.voc.index2word[token.item()] for token in tokens[0]]
-        return " ".join([x for x in decoded_words if not (x == 'EOS' or x == 'PAD')])
+        return " ".join([x for x in decoded_words if not (x == 'EOS' or x == 'PAD')]), tokens
 
 
 def optimize_model(policy, searcher, memory, en_optimizer, de_optimizer):

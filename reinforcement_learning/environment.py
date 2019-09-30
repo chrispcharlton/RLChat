@@ -27,22 +27,23 @@ class Env(object):
             self._state.pop(0)
         self._state.append(tensor)
 
-    def reset(self):
-        self._state = [self.state2tensors([" ".join(['hello'])])] * self.state_length
+    def reset(self, input_sentence=None):
+        input_sentence = " ".join(['hello']) if input_sentence is None else input_sentence
+        self._state = [self.sentence2tensor(input_sentence)] * self.state_length
         self.n_turns = 1
 
-    def state2tensors(self, state):
+    def sentence2tensor(self, sentence):
         ### Format input sentence as a batch
         # words -> indexes
-        indexes_batch = [indexesFromSentence(self.voc, s) for s in state]
+        indexes_batch = [indexesFromSentence(self.voc, sentence)]
         # Transpose dimensions of batch to match models' expectations
-        input_batch = torch.LongTensor(indexes_batch) #.transpose(0, 1)
+        seq = torch.LongTensor(indexes_batch) #.transpose(0, 1)
         # Use appropriate device
-        input_batch = input_batch.to(device)
-        return input_batch
+        seq = seq.to(device)
+        return seq
 
     def user_sim(self, state):
-        return self.state2tensors([" ".join(['hello'])])
+        return self.sentence2tensor(" ".join(['hello']))
 
     def step(self, action):
         self.n_turns += 2
