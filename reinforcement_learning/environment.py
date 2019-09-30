@@ -3,6 +3,7 @@ from ADEM import loadADEM
 from seq2seq import indexesFromSentence
 from ADEM import model
 
+max_turns_per_episode = 10
 
 class Env(object):
     def __init__(self, voc, state_length=1):
@@ -11,6 +12,7 @@ class Env(object):
         self.state_length = state_length
         self.reset()
         self.adem = loadADEM()
+        self.n_turns = 1
 
     @property
     def state(self):
@@ -33,8 +35,10 @@ class Env(object):
 
     def reset(self):
         self._state = [" ".join(['hello'])] * self.state_length
+        self.n_turns = 1
 
     def step(self, action):
+        self.n_turns += 2
         next_state = [action] + self._state[:-1]
         next_state = self.state2tensors(next_state)
         reward = self.calculate_reward(next_state)
@@ -48,4 +52,4 @@ class Env(object):
         return float(self.adem.predict(next_state))
 
     def is_done(self, state):
-        return random.random() > 0.7
+        return self.n_turns >= max_turns_per_episode
