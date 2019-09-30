@@ -24,7 +24,6 @@ def chat(searcher, env):
 Transition = namedtuple('Transition',
                         ('state', 'action', 'next_state', 'reward', 'done'))
 
-
 class ReplayMemory(object):
 
     def __init__(self, capacity):
@@ -56,7 +55,7 @@ class RLGreedySearchDecoder(nn.Module):
         self.decoder = decoder
         self.voc = voc
 
-    def forward(self, state, max_length=MAX_LENGTH):
+    def forward(self, state, greedy=True, max_length=MAX_LENGTH):
         # Forward input through encoder model
         input_length = torch.LongTensor([len(s) for s in state])
         batch_size = state.size(0)
@@ -73,7 +72,12 @@ class RLGreedySearchDecoder(nn.Module):
             # Forward pass through decoder
             decoder_output, decoder_hidden = self.decoder(decoder_input, decoder_hidden, encoder_outputs)
             # Obtain most likely word token and its softmax score
-            decoder_scores, decoder_input = torch.max(decoder_output, dim=1)
+            if greedy:
+                decoder_scores, decoder_input = torch.max(decoder_output, dim=1)
+            else:
+                decoder_input = torch.randint(decoder_output.size(dim=1), (1,1))
+                decoder_scores = decoder_output.select(1, decoder_input)
+
             # Record token and score
             all_tokens = torch.cat((all_tokens, decoder_input), dim=0)
             all_scores = torch.cat((all_scores, decoder_scores), dim=0)
@@ -91,9 +95,6 @@ class RLGreedySearchDecoder(nn.Module):
         """
         ## TODO: add e-greedy?
         with torch.no_grad():
-            # t.max(1) will return largest column value of each row.
-            # second column on max result is index of where max element was
-            # found, so we pick action with the larger expected reward.
             tokens, scores = self(state, max_length)
         decoded_words = [self.voc.index2word[token.item()] for token in tokens[0]]
         return " ".join([x for x in decoded_words if not (x == 'EOS' or x == 'PAD')])

@@ -32,7 +32,7 @@ def train(load_dir='data\\save\\cb_model\\cornell movie-dialogs corpus\\2-2_500'
             action = env.state2tensors([action])[0]
             memory.push(state, action, next_state, reward, done)
             state = next_state
-        print("Episode {} completed, lasted {} turns.".format(i_episode, length))
+        print("Episode {} completed, lasted {} turns.".format(i_episode, env.n_turns))
         loss = optimize_batch_q(policy, policy_optimizer, memory, encoder_optimizer, decoder_optimizer)
             # if done:
                 # record episode duration?
@@ -45,7 +45,7 @@ def train(load_dir='data\\save\\cb_model\\cornell movie-dialogs corpus\\2-2_500'
         # if i_episode % TARGET_UPDATE == 0:
         #     target_net.load_state_dict(policy_net.state_dict())
 
-    return policy, env
+    return searcher, env
 
 if __name__ == '__main__':
     train(num_episodes=30)
