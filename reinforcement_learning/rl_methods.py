@@ -3,6 +3,7 @@ from seq2seq.vocab import MAX_LENGTH, SOS_token
 from collections import namedtuple
 
 
+
 def chat(searcher, env):
     input_sentence = ''
     while(1):
@@ -22,7 +23,7 @@ def chat(searcher, env):
 
 
 Transition = namedtuple('Transition',
-                        ('state', 'action', 'next_state', 'reward', 'done'))
+                        ('state', 'action', 'next_state', 'reward', 'done', 'prob'))
 
 class ReplayMemory(object):
 
@@ -227,7 +228,7 @@ def optimize_batch(searcher, memory, en_optimizer, de_optimizer):
     return loss
 
 
-def optimize_batch_q(policy, policy_optimizer, memory, en_optimizer, de_optimizer):
+def optimize_batch_q(policy, policy_optimizer, searcher, memory, en_optimizer, de_optimizer):
 
     ## TODO: clean up this function
 
@@ -278,6 +279,8 @@ def optimize_batch_q(policy, policy_optimizer, memory, en_optimizer, de_optimize
     loss.backward()
     policy_optimizer.step()
 
+
+
     ## TODO: optimise seq2seq model
 
     # # Optimize the model
@@ -292,3 +295,6 @@ def optimize_batch_q(policy, policy_optimizer, memory, en_optimizer, de_optimize
     # de_optimizer.step()
 
     return loss
+
+    def qloss(probs, q_values):
+        loss = torch.log(probs) * q_values
