@@ -160,7 +160,7 @@ def optimize_model(policy, searcher, memory, en_optimizer, de_optimizer):
 
 def seqs_to_padded_tensors(seqs, max_length=None):
     lengths = torch.LongTensor([len(s) if s is not None else 0 for s in seqs])
-    max_length = MAX_LENGTH if max_length is None else lengths.max()
+    max_length = max_length if max_length is not None else lengths.max()
     state_tensor = torch.zeros((len(seqs), max_length)).long()
     for idx, (seq, seq_len) in enumerate(zip(seqs, lengths)):
         if seq is not None:
@@ -227,13 +227,23 @@ def optimize_batch(searcher, memory, en_optimizer, de_optimizer):
 
     return loss
 
+def optimise_qnet(state_action_values, expected_state_action_values, qnet, qnet_optimizer, retain_graph=True):
+    # Compute MSE loss
+    loss = F.mse_loss(state_action_values, expected_state_action_values)
+    qnet.zero_grad()
+    loss.backward(retain_graph=retain_graph)
+    qnet_optimizer.step()
+    return loss
 
-def optimize_batch_q(policy, policy_optimizer, searcher, memory, en_optimizer, de_optimizer):
+def qloss(probs, q_values):
+    return torch.mean(torch.mul(torch.log(probs), q_values).mul(-1), -1).mean()
+
+def optimize_batch_q(policy, qnet, qnet_optimizer, memory, en_optimizer, de_optimizer):
 
     ## TODO: clean up this function
 
     if len(memory) < BATCH_SIZE:
-        return None
+        return None, None
 
     transitions = memory.sample(BATCH_SIZE)
     # Transpose the batch (see https://stackoverflow.com/a/19343/3343043 for
@@ -252,6 +262,9 @@ def optimize_batch_q(policy, policy_optimizer, searcher, memory, en_optimizer, d
     reward_batch = torch.stack(batch.reward)
     reward_batch = reward_batch[perm_idx]
 
+    prob_batch = torch.stack(batch.prob)
+    prob_batch = prob_batch[perm_idx]
+
     # Compute a mask of non-final states. Mask is used to allocate 0 future reward to terminal states.
     # (a final state would've been the one after which simulation ended)
     non_final_mask = torch.tensor(tuple([True if s.sum() != 0 else False for s in next_states]), device=device, dtype=torch.bool)
@@ -259,42 +272,25 @@ def optimize_batch_q(policy, policy_optimizer, searcher, memory, en_optimizer, d
 
     # Compute Q(s_t, a) - the model computes Q(s_t).
     ## TODO: check that final score (output probability) for action is correct. Maybe should be using average for whole action?
-    state_action_values = policy(states)
+    state_action_values = qnet(states)
 
     # Compute V(s_{t+1}) for all next states.
-    # Expected values of actions for non_final_next_states are computed based
-    # on the "older" target_net
+    # Expected values of actions for non_final_next_states are computed based on the "older" target_net
     # This is merged based on the mask, such that we'll have either the expected
     # state value or 0 in case the state was final.
     next_state_values = torch.zeros(BATCH_SIZE, 1, device=device)
-    next_state_values[non_final_mask] = policy(non_final_next_states)
+    next_state_values[non_final_mask] = qnet(non_final_next_states)
 
     # Compute the expected Q values for next states
     expected_state_action_values = (next_state_values * GAMMA) + reward_batch
 
-    # Compute MSE loss
-    loss = F.mse_loss(state_action_values, expected_state_action_values)
+    dqn_loss = optimise_qnet(state_action_values, expected_state_action_values, qnet, qnet_optimizer)
 
-    policy.zero_grad()
-    loss.backward()
-    policy_optimizer.step()
+    policy_loss = qloss(prob_batch, expected_state_action_values)
+    en_optimizer.zero_grad()
+    de_optimizer.zero_grad()
+    policy_loss.backward()
+    en_optimizer.step()
+    de_optimizer.step()
 
-
-
-    ## TODO: optimise seq2seq model
-
-    # # Optimize the model
-    # en_optimizer.zero_grad()
-    # de_optimizer.zero_grad()
-    # loss.backward()
-    # # for param in searcher.encoder.parameters():
-    # #     param.grad.data.clamp_(-1, 1)
-    # # for param in searcher.decoder.parameters():
-    # #     param.grad.data.clamp_(-1, 1)
-    # en_optimizer.step()
-    # de_optimizer.step()
-
-    return loss
-
-    def qloss(probs, q_values):
-        loss = torch.log(probs) * q_values
+    return dqn_loss, policy_loss

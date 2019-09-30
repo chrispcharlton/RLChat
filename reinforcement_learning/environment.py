@@ -4,6 +4,11 @@ from seq2seq import indexesFromSentence
 
 max_turns_per_episode = 10
 
+def pad_with_zeroes(seq):
+    state_tensor = torch.zeros((1, MAX_LENGTH)).long()
+    state_tensor[1, :len(seq)] = torch.LongTensor(seq)
+    return state_tensor
+
 class Env(object):
     def __init__(self, voc, state_length=4):
         print('Initialising Environment...')
@@ -52,7 +57,7 @@ class Env(object):
 
     def calculate_reward(self, next_state):
         # TODO: reward should probably be a vector of whole sentence, with reward for each token
-        return float(self.adem.predict(next_state))
+        return float(self.adem.predict(next_state) / 4)
 
     def is_done(self, state):
         return self.n_turns >= max_turns_per_episode
