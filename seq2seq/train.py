@@ -1,14 +1,12 @@
 from _requirements import *
-from seq2seq.vocab import loadPrepareData, loadAlexaData
+from seq2seq.models import EncoderRNN, LuongAttnDecoderRNN
 from seq2seq.prepareTrainData import batch2TrainData
 from seq2seq.processText import loadLines, loadConversations, extractSentencePairs, printLines, trimRareWords
-from seq2seq.models import EncoderRNN, LuongAttnDecoderRNN
 from seq2seq.trainingMethods import trainIters
-
+from seq2seq.vocab import loadPrepareData, loadAlexaData
 
 corpus_name = "cornell movie-dialogs corpus"
-corpus = os.path.join("data", corpus_name)
-corpus = os.path.join("C:\\Users\\Christopher\\PycharmProjects\\RLChat","data", corpus_name)
+corpus = os.path.join("..\\data", corpus_name)
 # Define path to new file
 datafile = os.path.join(corpus, "formatted_movie_lines.txt")
 
