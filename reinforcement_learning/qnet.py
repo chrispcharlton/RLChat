@@ -1,9 +1,5 @@
 from _requirements import *
 from torch.autograd import Variable
-import numpy as np
-from seq2seq import loadModel
-from seq2seq import loadAlexaData, batch2TrainData
-from _config import *
 
 class DQN(nn.Module):
     def __init__(self, hidden_size, embedding, n_layers=1, dropout=0):

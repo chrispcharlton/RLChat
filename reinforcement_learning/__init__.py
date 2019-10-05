@@ -1,2 +1,2 @@
-from reinforcement_learning.rl_train import train
-from reinforcement_learning.rl_methods import chat
+from reinforcement_learning.train import train
+from reinforcement_learning.environment import chat

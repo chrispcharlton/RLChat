@@ -1,8 +1,29 @@
-from reinforcement_learning.rl_methods import *
+from _requirements import *
 from ADEM import loadADEM
 from seq2seq import indexesFromSentence
+from reinforcement_learning._config import MAX_LENGTH
+from collections import namedtuple
 
 max_turns_per_episode = 10
+
+def chat(policy, env):
+    input_sentence = ''
+    env.reset()
+    env._state = []
+
+    while(1):
+        try:
+            input_sentence = input('> ')
+            if input_sentence == 'q':
+                break
+            input_sentence = env.sentence2tensor(input_sentence)
+            env.update_state(input_sentence)
+            response, tensor = policy.response(env.state)
+            env.update_state(tensor)
+            print('Bot:', response)
+        except KeyError:
+            print("Error: Encountered unknown word.")
+
 
 def pad_with_zeroes(seq):
     state_tensor = torch.zeros((1, MAX_LENGTH)).long()

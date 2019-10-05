@@ -1,26 +1,10 @@
 from _requirements import *
-from seq2seq.vocab import MAX_LENGTH, SOS_token
+from seq2seq.loader import loadModel, saveStateDict
+from reinforcement_learning.qnet import DQN
+from reinforcement_learning._config import save_every, hidden_size, learning_rate, BATCH_SIZE, GAMMA
+from reinforcement_learning.environment import Env
+from reinforcement_learning.model import RLGreedySearchDecoder
 from collections import namedtuple
-
-
-
-def chat(policy, env):
-    input_sentence = ''
-    env.reset()
-    env._state = []
-
-    while(1):
-        try:
-            input_sentence = input('> ')
-            if input_sentence == 'q':
-                break
-            input_sentence = env.sentence2tensor(input_sentence)
-            env.update_state(input_sentence)
-            response, tensor = policy.response(env.state)
-            env.update_state(tensor)
-            print('Bot:', response)
-        except KeyError:
-            print("Error: Encountered unknown word.")
 
 Transition = namedtuple('Transition',
                         ('state', 'action', 'next_state', 'reward', 'done', 'prob'))
@@ -45,110 +29,6 @@ class ReplayMemory(object):
     def __len__(self):
         return len(self.memory)
 
-
-BATCH_SIZE = 64
-GAMMA = 0.999
-
-class RLGreedySearchDecoder(nn.Module):
-    def __init__(self, encoder, decoder, voc):
-        super(RLGreedySearchDecoder, self).__init__()
-        self.encoder = encoder
-        self.decoder = decoder
-        self.voc = voc
-
-    def forward(self, state, greedy=True, max_length=MAX_LENGTH):
-        # Forward input through encoder model
-        input_length = torch.LongTensor([len(s) for s in state])
-        batch_size = state.size(0)
-        encoder_outputs, encoder_hidden = self.encoder(state, input_length)
-        # Prepare encoder's final hidden layer to be first hidden input to the decoder
-        decoder_hidden = encoder_hidden[:self.decoder.n_layers]
-        # Initialize decoder input with SOS_token
-        decoder_input = torch.ones(1, batch_size, device=device, dtype=torch.long) * SOS_token
-        # Initialize tensors to append decoded words to
-        all_tokens = torch.zeros([0], device=device, dtype=torch.long)
-        all_scores = torch.zeros([0], device=device)
-        # Iteratively decode one word token at a time
-        for _ in range(max_length):
-            # Forward pass through decoder
-            decoder_output, decoder_hidden = self.decoder(decoder_input, decoder_hidden, encoder_outputs)
-            # Obtain most likely word token and its softmax score
-            if greedy:
-                decoder_scores, decoder_input = torch.max(decoder_output, dim=1)
-            else:
-                decoder_input = torch.randint(decoder_output.size(dim=1), (1,1))
-                decoder_scores = decoder_output.select(1, decoder_input)
-
-            # Record token and score
-            all_tokens = torch.cat((all_tokens, decoder_input), dim=0)
-            all_scores = torch.cat((all_scores, decoder_scores), dim=0)
-            # Prepare current token to be next decoder input (add a dimension)
-            decoder_input = torch.unsqueeze(decoder_input, 0)
-        # Return collections of word tokens and scores
-        return all_tokens.view(batch_size,-1), all_scores.view(batch_size,-1)
-
-    def response(self, state):
-        tokens, scores = self(state)
-        decoded_words = [self.voc.index2word[token.item()] for token in tokens[0]]
-        return " ".join([x for x in decoded_words if not (x == 'EOS' or x == 'PAD')]), tokens
-
-
-def optimize_model(policy, searcher, memory, en_optimizer, de_optimizer):
-    """
-    Simple optimisation function for reinforcement learning using for loop to process batch.
-    Much less efficient than vectorised version below but easier to understand so I've left it here.
-
-    :param searcher: seq2seq model used for action selection
-    :param memory: replay memory; list of Transition objects (state, action, next_state, reward, done)
-    :param en_optimizer: encoder optimiser of seq2seq model
-    :param de_optimizer: decoder optimiser of seq2seq model
-    :return: batch loss
-    """
-    if len(memory) < BATCH_SIZE:
-        return
-    else:
-        print("Optimising...")
-
-        transitions = memory.sample(BATCH_SIZE)
-
-        est = []
-        actual = []
-
-        for n in transitions:
-        # Compute Q(s_t) - Q_value of the starting state for transition n
-        # searcher outputs tensor of value for each word in the action sequence
-        # max value is expected reward (maybe switch to average value?)
-            est.append(policy(n.state))
-
-            # if s_t is terminal then true reward is the reward given by environment
-            # if not then sum actual reward with Q value of expected future reward
-            if n.done:
-                q = n.reward
-            else:
-                q_next_state = policy(n.state)[1].max()
-                q = (q_next_state * GAMMA) + n.reward
-
-            actual.append(q)
-
-        # Compute Huber loss
-        est = torch.stack(est)
-        actual = torch.stack(actual)
-        loss = F.smooth_l1_loss(est, actual)
-        loss.backward()
-        print ("loss =", loss)
-
-        # Optimize the model
-        en_optimizer.zero_grad()
-        de_optimizer.zero_grad()
-        ## Not sure below is necessary
-        # for param in searcher.encoder.parameters():
-        #     param.grad.data.clamp_(-1, 1)
-        # for param in searcher.decoder.parameters():
-        #     param.grad.data.clamp_(-1, 1)
-        en_optimizer.step()
-        de_optimizer.step()
-
-        return loss
 
 def seqs_to_padded_tensors(seqs, max_length=None):
     lengths = torch.LongTensor([len(s) if s is not None else 0 for s in seqs])
@@ -286,3 +166,57 @@ def optimize_batch_q(policy, qnet, qnet_optimizer, memory, en_optimizer, de_opti
     de_optimizer.step()
 
     return dqn_loss, policy_loss
+
+
+def train(load_dir='data\\save\\cb_model\\cornell movie-dialogs corpus\\2-2_500', save_dir="data\\rl_models\\DQNseq2seq", num_episodes=50, env=None):
+    episode, encoder, decoder, encoder_optimizer, decoder_optimizer, voc = loadModel(directory=load_dir)
+    policy = RLGreedySearchDecoder(encoder, decoder, voc)
+    embedding = nn.Embedding(voc.num_words, hidden_size)
+    qnet = DQN(hidden_size, embedding)
+    qnet_optimizer = torch.optim.Adam(qnet.parameters(), lr=learning_rate)
+    memory = ReplayMemory(1000)
+    env = env if env else Env(voc)
+
+    # set episode number to 0 if starting from warm-started model. If loading rl-trained model continue from current number of eps
+    if "\\rl_models\\" not in load_dir:
+        episode = 0
+
+    total_rewards = []
+    dqn_losses = []
+
+    # RL training loop
+    print("Training for {} episodes...".format(num_episodes))
+    for i_episode in range(1, num_episodes+1):
+        env.reset()
+        state = env.state
+        done = False
+        length = 0
+        total_reward = 0
+        total_q = 0
+        while not done:
+            length += 1
+            action, prob = policy(state)
+            prob = torch.tensor([torch.mean(prob)])
+            reward, next_state, done = env.step(action)
+            total_reward += reward
+            reward = torch.tensor([reward], device=device)
+            memory.push(state, action, next_state, reward, done, prob)
+            state = next_state
+        print("Episode {} completed, lasted {} turns.".format(i_episode, env.n_turns))
+        dqn_loss, policy_loss = optimize_batch_q(policy, qnet, qnet_optimizer, memory, encoder_optimizer, decoder_optimizer)
+        total_rewards.append(total_reward)
+        dqn_loss = dqn_loss if dqn_loss is not None else 0
+        dqn_losses.append(dqn_loss)
+
+        # only save if optimisation has been done
+        if i_episode % save_every == 0 and policy_loss:
+            saveStateDict(episode + i_episode, encoder, decoder, encoder_optimizer, decoder_optimizer, policy_loss, voc, encoder.embedding, save_dir)
+
+        # TODO: implement target/policy net (DDQN)?
+        # if i_episode % TARGET_UPDATE == 0:
+        #     target_net.load_state_dict(policy_net.state_dict())
+
+    return policy, env, total_rewards, dqn_losses
+
+if __name__ == '__main__':
+    train(num_episodes=30)
