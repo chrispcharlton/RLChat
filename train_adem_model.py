@@ -31,8 +31,6 @@ criterion = nn.CrossEntropyLoss()
 for epoch in range(1, N_EPOCHS + 1):
     loss = train_epoch(epoch, model, optimizer, criterion, train_loader, voc)
 
-    test_epoch(model, test_loader, voc)
-
     torch.save({
         'iteration': epoch,
         'model': model.state_dict(),
@@ -41,3 +39,6 @@ for epoch in range(1, N_EPOCHS + 1):
         'voc_dict': voc.__dict__,
         'embedding': embedding.state_dict()
     }, os.path.join(save_dir, '{}_{}.tar'.format(epoch, 'epochs')))
+
+    test_epoch(model, test_loader, voc)
+
