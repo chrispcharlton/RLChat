@@ -17,7 +17,6 @@ class ReplayMemory(object):
         self.position = 0
 
     def push(self, *args):
-        """Saves a transition."""
         if len(self.memory) < self.capacity:
             self.memory.append(None)
         self.memory[self.position] = Transition(*args)
@@ -31,6 +30,7 @@ class ReplayMemory(object):
 
 
 def seqs_to_padded_tensors(seqs, max_length=None):
+    ## TODO: does this need to pad with spaces (token) insteade of 0s?
     lengths = torch.LongTensor([len(s) if s is not None else 0 for s in seqs])
     max_length = max_length if max_length is not None else lengths.max()
     state_tensor = torch.zeros((len(seqs), max_length)).long()
@@ -38,6 +38,7 @@ def seqs_to_padded_tensors(seqs, max_length=None):
         if seq is not None:
             state_tensor[idx, :seq_len] = torch.LongTensor(seq)
     return state_tensor, lengths
+
 
 def optimize_batch(searcher, memory, en_optimizer, de_optimizer):
 
@@ -99,6 +100,7 @@ def optimize_batch(searcher, memory, en_optimizer, de_optimizer):
 
     return loss
 
+
 def optimise_qnet(state_action_values, expected_state_action_values, qnet, qnet_optimizer, retain_graph=True):
     # Compute MSE loss
     loss = F.mse_loss(state_action_values, expected_state_action_values)
@@ -107,8 +109,10 @@ def optimise_qnet(state_action_values, expected_state_action_values, qnet, qnet_
     qnet_optimizer.step()
     return loss
 
+
 def qloss(probs, q_values):
     return torch.mean(torch.mul(torch.log(probs), q_values).mul(-1), -1).mean()
+
 
 def optimize_batch_q(policy, qnet, qnet_optimizer, memory, en_optimizer, de_optimizer):
 
@@ -124,7 +128,8 @@ def optimize_batch_q(policy, qnet, qnet_optimizer, memory, en_optimizer, de_opti
     batch = Transition(*zip(*transitions))
 
     # Convert batch to stacked tensors to input into model and sort by state length
-    states, state_lengths = seqs_to_padded_tensors([s[0] for s in batch.state])
+    sa_pairs = [torch.cat((s[0], a[0])) for s, a in zip(batch.state, batch.action)]
+    states, state_lengths = seqs_to_padded_tensors([s for s in sa_pairs])
     next_states, next_state_lengths = seqs_to_padded_tensors([s[0] if s is not None else s for s in batch.next_state])
 
     state_lengths, perm_idx = state_lengths.sort(0, descending=True)
@@ -143,7 +148,6 @@ def optimize_batch_q(policy, qnet, qnet_optimizer, memory, en_optimizer, de_opti
     non_final_next_states = torch.stack([s for s in next_states if s.sum() != 0])
 
     # Compute Q(s_t, a) - the model computes Q(s_t).
-    ## TODO: check that final score (output probability) for action is correct. Maybe should be using average for whole action?
     state_action_values = qnet(states)
 
     # Compute V(s_{t+1}) for all next states.
