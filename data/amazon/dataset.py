@@ -1,5 +1,5 @@
 from _config import MAX_LENGTH
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import Dataset
 from collections import namedtuple
 import random
 import json
@@ -7,7 +7,6 @@ import os
 
 Pair = namedtuple('Pair', ('utterance', 'response', 'rating', 'conversation_id'))
 numeric_ratings = {'Poor':0, 'Not Good':1, 'Passable':2, 'Good':3, 'Excellent':4}
-
 
 def load_alexa_pairs(fname='train.json', dir='./data/amazon'):
     pairs = []
@@ -17,6 +16,7 @@ def load_alexa_pairs(fname='train.json', dir='./data/amazon'):
             if response['turn_rating'] != '' and len(utterance['message'].split(' ')) < MAX_LENGTH and len(response['message'].split(' ')) < MAX_LENGTH:
                 pairs.append(Pair(utterance=utterance['message'], response=response['message'], rating=numeric_ratings[response['turn_rating']], conversation_id=c_id))
     return pairs
+
 
 class AlexaDataset(Dataset):
     """Amazon Alexa Conversations dataset."""
@@ -42,6 +42,7 @@ class AlexaDataset(Dataset):
     def random_conversation(self):
         id = random.choice(self.ids)
         return [p for p in self.data if p.conversation_id == id]
+
 
 if __name__ == '__main__':
     data = AlexaDataset('train.json')
