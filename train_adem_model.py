@@ -6,7 +6,7 @@ from ADEM.model import ADEM
 from torch.utils.data import DataLoader
 from seq2seq import loadAlexaData
 
-N_EPOCHS = 1
+N_EPOCHS = 5
 BATCH_SIZE = 256
 output_size = 5
 

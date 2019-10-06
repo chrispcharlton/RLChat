@@ -5,11 +5,11 @@ from seq2seq import indexesFromSentence
 def prepare_batch(batch, voc):
     index_seqs = [indexesFromSentence(voc, u) + indexesFromSentence(voc, r) for u, r in
                   zip(batch.utterance, batch.response)]
-    lengths = torch.LongTensor([len(s) for s in index_seqs])
+    lengths = torch.LongTensor([len(s) for s in index_seqs], device=device)
 
-    seq_tensor = torch.zeros((len(index_seqs), lengths.max())).long()
+    seq_tensor = torch.zeros((len(index_seqs), lengths.max()), device=device).long()
     for idx, (seq, seq_len) in enumerate(zip(index_seqs, lengths)):
-        seq_tensor[idx, :seq_len] = torch.LongTensor(seq)
+        seq_tensor[idx, :seq_len] = torch.LongTensor(seq, device=device)
 
     lengths, perm_idx = lengths.sort(0, descending=True)
     seq_tensor = seq_tensor[perm_idx]

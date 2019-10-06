@@ -32,9 +32,9 @@ class ReplayMemory(object):
 
 def seqs_to_padded_tensors(seqs, max_length=None):
     ## TODO: does this need to pad with spaces (token) insteade of 0s?
-    lengths = torch.LongTensor([len(s) if s is not None else 0 for s in seqs])
+    lengths = torch.LongTensor([len(s) if s is not None else 0 for s in seqs], device=device)
     max_length = max_length if max_length is not None else lengths.max()
-    state_tensor = torch.zeros((len(seqs), max_length)).long()
+    state_tensor = torch.zeros((len(seqs), max_length), device=device).long()
     for idx, (seq, seq_len) in enumerate(zip(seqs, lengths)):
         if seq is not None:
             state_tensor[idx, :seq_len] = torch.LongTensor(seq)
@@ -72,7 +72,7 @@ def optimize_batch(searcher, memory, en_optimizer, de_optimizer):
 
     # Compute Q(s_t, a) - the model computes Q(s_t).
     ## TODO: check that final score (output probability) for action is correct. Maybe should be using average for whole action?
-    state_action_values = torch.stack([torch.tensor([t[-1]], requires_grad=True) for t in searcher(states)[1]], dim=1)
+    state_action_values = torch.stack([torch.tensor([t[-1]], requires_grad=True, device=device) for t in searcher(states)[1]], dim=1)
 
     # Compute V(s_{t+1}) for all next states.
     # Expected values of actions for non_final_next_states are computed based
@@ -80,7 +80,7 @@ def optimize_batch(searcher, memory, en_optimizer, de_optimizer):
     # This is merged based on the mask, such that we'll have either the expected
     # state value or 0 in case the state was final.
     next_state_values = torch.zeros(BATCH_SIZE, 1, device=device)
-    next_state_values[non_final_mask] = torch.stack([torch.tensor([t[-1]], requires_grad=True) for t in searcher(non_final_next_states)[1]])
+    next_state_values[non_final_mask] = torch.stack([torch.tensor([t[-1]], requires_grad=True, device=device) for t in searcher(non_final_next_states)[1]])
 
     # Compute the expected Q values for next states
     expected_state_action_values = (next_state_values * GAMMA) + reward_batch
@@ -203,7 +203,7 @@ def train(load_dir='data\\save\\cb_model\\cornell movie-dialogs corpus\\2-2_500'
         while not done:
             length += 1
             action, prob = policy(state)
-            prob = torch.tensor([torch.mean(prob)])
+            prob = torch.tensor([torch.mean(prob)], device=device)
             reward, next_state, done = env.step(action)
             ep_reward += reward
             reward = torch.tensor([reward], device=device)

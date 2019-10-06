@@ -24,7 +24,7 @@ def chat(policy, env):
 
 
 def pad_with_zeroes(seq):
-    state_tensor = torch.zeros((1, MAX_LENGTH)).long()
+    state_tensor = torch.zeros((1, MAX_LENGTH), device=device).long()
     state_tensor[1, :len(seq)] = torch.LongTensor(seq)
     return state_tensor
 
@@ -57,7 +57,7 @@ class Env(object):
         # words -> indexes
         indexes_batch = [indexesFromSentence(self.voc, sentence)]
         # Transpose dimensions of batch to match models' expectations
-        seq = torch.LongTensor(indexes_batch) #.transpose(0, 1)
+        seq = torch.LongTensor(indexes_batch, device=device) #.transpose(0, 1)
         # Use appropriate device
         seq = seq.to(device)
         return seq

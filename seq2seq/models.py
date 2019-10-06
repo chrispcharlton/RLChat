@@ -30,7 +30,7 @@ class EncoderRNN(nn.Module):
         return outputs, hidden
 
     def _init_hidden(self, batch_size):
-        hidden = torch.zeros(self.n_layers * (1 + self.gru.bidirectional), batch_size, self.hidden_size)
+        hidden = torch.zeros(self.n_layers * (1 + self.gru.bidirectional), batch_size, self.hidden_size, device=device)
         return Variable(hidden)
 
 # Luong attention layer
@@ -45,7 +45,7 @@ class Attn(nn.Module):
             self.attn = nn.Linear(self.hidden_size, hidden_size)
         elif self.method == 'concat':
             self.attn = nn.Linear(self.hidden_size * 2, hidden_size)
-            self.v = nn.Parameter(torch.FloatTensor(hidden_size))
+            self.v = nn.Parameter(torch.FloatTensor(hidden_size), device=device)
 
     def dot_score(self, hidden, encoder_output):
         return torch.sum(hidden * encoder_output, dim=2)
