@@ -5,6 +5,7 @@ from reinforcement_learning._config import save_every, hidden_size, learning_rat
 from reinforcement_learning.environment import Env
 from reinforcement_learning.model import RLGreedySearchDecoder
 from collections import namedtuple
+from numpy import mean
 
 Transition = namedtuple('Transition',
                         ('state', 'action', 'next_state', 'reward', 'done', 'prob'))
@@ -17,7 +18,6 @@ class ReplayMemory(object):
         self.position = 0
 
     def push(self, *args):
-        """Saves a transition."""
         if len(self.memory) < self.capacity:
             self.memory.append(None)
         self.memory[self.position] = Transition(*args)
@@ -31,13 +31,15 @@ class ReplayMemory(object):
 
 
 def seqs_to_padded_tensors(seqs, max_length=None):
-    lengths = torch.LongTensor([len(s) if s is not None else 0 for s in seqs])
+    ## TODO: does this need to pad with spaces (token) insteade of 0s?
+    lengths = torch.LongTensor([len(s) if s is not None else 0 for s in seqs], device=device)
     max_length = max_length if max_length is not None else lengths.max()
-    state_tensor = torch.zeros((len(seqs), max_length)).long()
+    state_tensor = torch.zeros((len(seqs), max_length), device=device).long()
     for idx, (seq, seq_len) in enumerate(zip(seqs, lengths)):
         if seq is not None:
             state_tensor[idx, :seq_len] = torch.LongTensor(seq)
     return state_tensor, lengths
+
 
 def optimize_batch(searcher, memory, en_optimizer, de_optimizer):
 
@@ -70,7 +72,7 @@ def optimize_batch(searcher, memory, en_optimizer, de_optimizer):
 
     # Compute Q(s_t, a) - the model computes Q(s_t).
     ## TODO: check that final score (output probability) for action is correct. Maybe should be using average for whole action?
-    state_action_values = torch.stack([torch.tensor([t[-1]], requires_grad=True) for t in searcher(states)[1]], dim=1)
+    state_action_values = torch.stack([torch.tensor([t[-1]], requires_grad=True, device=device) for t in searcher(states)[1]], dim=1)
 
     # Compute V(s_{t+1}) for all next states.
     # Expected values of actions for non_final_next_states are computed based
@@ -78,7 +80,7 @@ def optimize_batch(searcher, memory, en_optimizer, de_optimizer):
     # This is merged based on the mask, such that we'll have either the expected
     # state value or 0 in case the state was final.
     next_state_values = torch.zeros(BATCH_SIZE, 1, device=device)
-    next_state_values[non_final_mask] = torch.stack([torch.tensor([t[-1]], requires_grad=True) for t in searcher(non_final_next_states)[1]])
+    next_state_values[non_final_mask] = torch.stack([torch.tensor([t[-1]], requires_grad=True, device=device) for t in searcher(non_final_next_states)[1]])
 
     # Compute the expected Q values for next states
     expected_state_action_values = (next_state_values * GAMMA) + reward_batch
@@ -99,6 +101,7 @@ def optimize_batch(searcher, memory, en_optimizer, de_optimizer):
 
     return loss
 
+
 def optimise_qnet(state_action_values, expected_state_action_values, qnet, qnet_optimizer, retain_graph=True):
     # Compute MSE loss
     loss = F.mse_loss(state_action_values, expected_state_action_values)
@@ -107,8 +110,10 @@ def optimise_qnet(state_action_values, expected_state_action_values, qnet, qnet_
     qnet_optimizer.step()
     return loss
 
+
 def qloss(probs, q_values):
     return torch.mean(torch.mul(torch.log(probs), q_values).mul(-1), -1).mean()
+
 
 def optimize_batch_q(policy, qnet, qnet_optimizer, memory, en_optimizer, de_optimizer):
 
@@ -124,7 +129,8 @@ def optimize_batch_q(policy, qnet, qnet_optimizer, memory, en_optimizer, de_opti
     batch = Transition(*zip(*transitions))
 
     # Convert batch to stacked tensors to input into model and sort by state length
-    states, state_lengths = seqs_to_padded_tensors([s[0] for s in batch.state])
+    sa_pairs = [torch.cat((s[0], a[0])) for s, a in zip(batch.state, batch.action)]
+    states, state_lengths = seqs_to_padded_tensors([s for s in sa_pairs])
     next_states, next_state_lengths = seqs_to_padded_tensors([s[0] if s is not None else s for s in batch.next_state])
 
     state_lengths, perm_idx = state_lengths.sort(0, descending=True)
@@ -143,7 +149,6 @@ def optimize_batch_q(policy, qnet, qnet_optimizer, memory, en_optimizer, de_opti
     non_final_next_states = torch.stack([s for s in next_states if s.sum() != 0])
 
     # Compute Q(s_t, a) - the model computes Q(s_t).
-    ## TODO: check that final score (output probability) for action is correct. Maybe should be using average for whole action?
     state_action_values = qnet(states)
 
     # Compute V(s_{t+1}) for all next states.
@@ -187,26 +192,32 @@ def train(load_dir='data\\save\\cb_model\\cornell movie-dialogs corpus\\2-2_500'
     # RL training loop
     print("Training for {} episodes...".format(num_episodes))
     for i_episode in range(1, num_episodes+1):
+        if i_episode % 10 == 0:
+            env.user_sim_model = policy
         env.reset()
         state = env.state
         done = False
         length = 0
-        total_reward = 0
-        total_q = 0
+        ep_reward = 0
+        ep_q_loss = []
         while not done:
             length += 1
             action, prob = policy(state)
-            prob = torch.tensor([torch.mean(prob)])
+            prob = torch.tensor([torch.mean(prob)], device=device)
             reward, next_state, done = env.step(action)
-            total_reward += reward
+            ep_reward += reward
             reward = torch.tensor([reward], device=device)
             memory.push(state, action, next_state, reward, done, prob)
             state = next_state
-        print("Episode {} completed, lasted {} turns.".format(i_episode, env.n_turns))
-        dqn_loss, policy_loss = optimize_batch_q(policy, qnet, qnet_optimizer, memory, encoder_optimizer, decoder_optimizer)
-        total_rewards.append(total_reward)
-        dqn_loss = dqn_loss if dqn_loss is not None else 0
-        dqn_losses.append(dqn_loss)
+            dqn_loss, policy_loss = optimize_batch_q(policy, qnet, qnet_optimizer, memory, encoder_optimizer, decoder_optimizer)
+            total_rewards.append(ep_reward)
+            dqn_loss = dqn_loss.item() if dqn_loss is not None else 0
+            ep_q_loss.append(dqn_loss)
+        ep_q_loss = mean(ep_q_loss)
+        total_rewards.append(ep_reward)
+        dqn_losses.append(ep_q_loss)
+
+        print("Episode {} completed, lasted {} turns -- Total Reward : {} -- Average DQN Loss : {}".format(i_episode, env.n_turns, ep_reward, ep_q_loss))
 
         # only save if optimisation has been done
         if i_episode % save_every == 0 and policy_loss:

@@ -16,7 +16,7 @@ class DQN(nn.Module):
 
     def forward(self, state, hidden=None):
         # Convert word indexes to  embeddings
-        input_lengths = torch.LongTensor([len(s) for s in state])
+        input_lengths = torch.LongTensor([len(s) for s in state], device=device)
 
         embedded = self.embedding(state.t())
 
@@ -38,6 +38,6 @@ class DQN(nn.Module):
         return output
 
     def _init_hidden(self, batch_size):
-        hidden = torch.zeros(self.n_layers*(1+int(self.gru.bidirectional)), batch_size, self.hidden_size)
+        hidden = torch.zeros(self.n_layers*(1+int(self.gru.bidirectional)), batch_size, self.hidden_size, device=device)
         return Variable(hidden)
 
