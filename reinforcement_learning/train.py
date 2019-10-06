@@ -5,6 +5,7 @@ from reinforcement_learning._config import save_every, hidden_size, learning_rat
 from reinforcement_learning.environment import Env
 from reinforcement_learning.model import RLGreedySearchDecoder
 from collections import namedtuple
+from numpy import mean
 
 Transition = namedtuple('Transition',
                         ('state', 'action', 'next_state', 'reward', 'done', 'prob'))
@@ -195,22 +196,26 @@ def train(load_dir='data\\save\\cb_model\\cornell movie-dialogs corpus\\2-2_500'
         state = env.state
         done = False
         length = 0
-        total_reward = 0
-        total_q = 0
+        ep_reward = 0
+        ep_q_loss = []
         while not done:
             length += 1
             action, prob = policy(state)
             prob = torch.tensor([torch.mean(prob)])
             reward, next_state, done = env.step(action)
-            total_reward += reward
+            ep_reward += reward
             reward = torch.tensor([reward], device=device)
             memory.push(state, action, next_state, reward, done, prob)
             state = next_state
-        print("Episode {} completed, lasted {} turns.".format(i_episode, env.n_turns))
-        dqn_loss, policy_loss = optimize_batch_q(policy, qnet, qnet_optimizer, memory, encoder_optimizer, decoder_optimizer)
-        total_rewards.append(total_reward)
-        dqn_loss = dqn_loss if dqn_loss is not None else 0
-        dqn_losses.append(dqn_loss)
+            dqn_loss, policy_loss = optimize_batch_q(policy, qnet, qnet_optimizer, memory, encoder_optimizer, decoder_optimizer)
+            total_rewards.append(ep_reward)
+            dqn_loss = dqn_loss.item() if dqn_loss is not None else 0
+            ep_q_loss.append(dqn_loss)
+        ep_q_loss = mean(ep_q_loss)
+        total_rewards.append(ep_reward)
+        dqn_losses.append(ep_q_loss)
+
+        print("Episode {} completed, lasted {} turns -- Total Reward : {} -- Average DQN Loss : {}".format(i_episode, env.n_turns, ep_reward, ep_q_loss))
 
         # only save if optimisation has been done
         if i_episode % save_every == 0 and policy_loss:
