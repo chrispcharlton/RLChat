@@ -192,6 +192,8 @@ def train(load_dir='data\\save\\cb_model\\cornell movie-dialogs corpus\\2-2_500'
     # RL training loop
     print("Training for {} episodes...".format(num_episodes))
     for i_episode in range(1, num_episodes+1):
+        if i_episode % 10 == 0:
+            env.user_sim_model = policy
         env.reset()
         state = env.state
         done = False
