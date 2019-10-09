@@ -2,12 +2,17 @@
 <module type="PYTHON_MODULE" version="4">
   <component name="NewModuleRootManager">
     <content url="file://$MODULE_DIR$">
+<<<<<<< HEAD
+      <excludeFolder url="file://$MODULE_DIR$/venv" />
+    </content>
+=======
       <sourceFolder url="file://$MODULE_DIR$/reinforcement_learning" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/seq2seq" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/data" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/ADEM" isTestSource="false" />
     </content>
     <orderEntry type="inheritedJdk" />
+>>>>>>> upstream/master
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="library" name="R User Library" level="project" />
     <orderEntry type="library" name="R Skeletons" level="application" />

@@ -36,7 +36,9 @@ def train(input_variable, lengths, target_variable, mask, max_target_len, encode
     encoder_outputs, encoder_hidden = encoder(input_variable, lengths)
 
     # Create initial decoder input (start with SOS tokens for each sentence)
-    decoder_input = torch.LongTensor([[SOS_token for _ in range(batch_size)]], device=device)
+    # decoder_input = torch.LongTensor([[SOS_token for _ in range(batch_size)]], device=device)
+    decoder_input = torch.tensor([[SOS_token for _ in range(batch_size)]], device=device, dtype=torch.long)
+
     decoder_input = decoder_input.to(device)
 
     # Set initial decoder hidden state to the encoder's final hidden state
@@ -65,7 +67,8 @@ def train(input_variable, lengths, target_variable, mask, max_target_len, encode
             )
             # No teacher forcing: next input is decoder's own current output
             _, topi = decoder_output.topk(1)
-            decoder_input = torch.LongTensor([[topi[i][0] for i in range(batch_size)]], device=device)
+            # decoder_input = torch.LongTensor([[topi[i][0] for i in range(batch_size)]], device=device)
+            decoder_input = torch.tensor([[topi[i][0] for i in range(batch_size)]], device=device, dtype=torch.long)
             decoder_input = decoder_input.to(device)
             # Calculate and accumulate loss
             mask_loss, nTotal = maskNLLLoss(decoder_output, target_variable[t], mask[t])
@@ -170,7 +173,8 @@ def evaluate(encoder, decoder, searcher, voc, sentence, max_length=MAX_LENGTH):
     # Create lengths tensor
     lengths = torch.tensor([len(indexes) for indexes in indexes_batch], device=device)
     # Transpose dimensions of batch to match models' expectations
-    input_batch = torch.LongTensor(indexes_batch, device=device).transpose(0, 1)
+    # input_batch = torch.LongTensor(indexes_batch, device=device).transpose(0, 1)
+    input_batch = torch.tensor(indexes_batch, device=device, dtype=torch.long).transpose(0, 1)
     # Use appropriate device
     input_batch = input_batch.to(device)
     lengths = lengths.to(device)

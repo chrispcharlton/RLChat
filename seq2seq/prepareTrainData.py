@@ -23,8 +23,10 @@ def inputVar(l, voc):
     indexes_batch = [indexesFromSentence(voc, sentence) for sentence in l]
     lengths = torch.tensor([len(indexes) for indexes in indexes_batch], device=device)
     padList = zeroPadding(indexes_batch)
-    padVar = torch.LongTensor(padList, device=device)
+    # padVar = torch.LongTensor(padList, device=device)
+    padVar = torch.tensor(padList, device=device, dtype=torch.long)
     return padVar, lengths
+
 
 # Returns padded target sequence tensor, padding mask, and max target length
 def outputVar(l, voc):
@@ -32,8 +34,10 @@ def outputVar(l, voc):
     max_target_len = max([len(indexes) for indexes in indexes_batch])
     padList = zeroPadding(indexes_batch)
     mask = binaryMatrix(padList)
-    mask = torch.ByteTensor(mask, device=device)
-    padVar = torch.LongTensor(padList, device=device)
+    # mask = torch.BoolTensor(mask, device=device)  # ByteTensor of type uint8 raising error
+    padVar = torch.tensor(padList, device=device, dtype=torch.long)
+    mask = torch.tensor(mask, device=device, dtype=torch.bool)
+    # padVar = torch.LongTensor(padList, device=device) # Legacy constructor doesn't support GPU
     return padVar, mask, max_target_len
 
 # Returns all items for a given batch of pairs

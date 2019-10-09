@@ -3,14 +3,16 @@ from seq2seq.trainingMethods import GreedySearchDecoder, evaluateInput
 from seq2seq.models import EncoderRNN, LuongAttnDecoderRNN
 from seq2seq.vocab import Voc
 
+from constants import *
+
 def load_latest_state_dict():
-    savepath = 'data\\save\\cb_model\\cornell movie-dialogs corpus\\2-2_500'
+    savepath = SAVE_PATH
     saves = os.listdir(savepath)
     max_save = saves[0]
     for save in saves:
          if int(save.split('_')[0]) > int(max_save.split('_')[0]):
              max_save = save
-    return torch.load(open(os.path.join(savepath, max_save), 'rb'))
+    return torch.load(open(os.path.join(savepath, max_save), 'rb'), map_location=device)
 
 def chat_with_latest():
     model = load_latest_state_dict()

@@ -3,17 +3,20 @@ from seq2seq.models import EncoderRNN, LuongAttnDecoderRNN
 from seq2seq.vocab import Voc
 from _config import *
 
-def load_latest_state_dict(savepath='data\\save\\cb_model\\cornell movie-dialogs corpus\\2-2_500'):
+from constants import *
+
+def load_latest_state_dict(savepath):
     try:
         saves = os.listdir(savepath)
     except FileNotFoundError:
-        savepath = os.path.join("C:\\Users\\Christopher\\PycharmProjects\\RLChat", savepath)
+        # savepath = os.path.join("C:\\Users\\Christopher\\PycharmProjects\\RLChat", savepath)
+        savepath = os.path.join(BASE_DIR, savepath)
         saves = os.listdir(savepath)
     max_save = saves[0]
     for save in saves:
         if int(save.split('_')[0]) > int(max_save.split('_')[0]):
             max_save = save
-    return torch.load(open(os.path.join(savepath, max_save), 'rb'))
+    return torch.load(open(os.path.join(savepath, max_save), 'rb'), map_location=device)
 
 
 def saveStateDict(episode, encoder, decoder, encoder_optimizer, decoder_optimizer, loss, voc, embedding, directory):
@@ -33,7 +36,7 @@ def saveStateDict(episode, encoder, decoder, encoder_optimizer, decoder_optimize
 
 
 def loadModel(hidden_size=hidden_size, encoder_n_layers=encoder_n_layers, decoder_n_layers=decoder_n_layers, dropout=dropout, attn_model=attn_model, learning_rate=learning_rate, decoder_learning_ratio=decoder_learning_ratio,
-              directory='data\\save\\cb_model\\cornell movie-dialogs corpus\\2-2_500'):
+              directory=SAVE_PATH):
     state_dict = load_latest_state_dict(directory)
     episode = state_dict['iteration']
     encoder_sd = state_dict['en']

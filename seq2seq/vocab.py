@@ -100,7 +100,7 @@ def loadPrepareData(corpus, corpus_name, datafile, save_dir):
 
 def readAlexa():
     pairs = []
-    for f in [f for f in os.listdir('.\\data\\amazon\\') if f.endswith('.json')]:
+    for f in [f for f in os.listdir('./data/amazon/') if f.endswith('.json')]:
         pairs += [[t.utterance, t.response] for t in load_alexa_pairs(f)]
     voc = Voc('Alexa')
     return voc, pairs
