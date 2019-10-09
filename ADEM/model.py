@@ -67,7 +67,7 @@ class ADEM(nn.Module):
         '''
 
         pred = self(state, hidden)
-        return pred.data.max(1, keepdim=True)[1].item()
+        return pred.data.max(1, keepdim=True)[1]
 
     def _init_hidden(self, batch_size):
         hidden = torch.zeros(self.n_layers*(1+int(self.gru.bidirectional)), batch_size, self.hidden_size, device=device)
