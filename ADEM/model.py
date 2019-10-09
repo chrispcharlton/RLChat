@@ -4,7 +4,10 @@ from seq2seq import load_latest_state_dict
 from seq2seq import Voc
 from _config import *
 
-def loadADEM(hidden_size=hidden_size, output_size=5, n_layers=1, dropout=0, path='.\\data\\amazon\\models\\adem\\'):
+from constants import *
+
+
+def loadADEM(hidden_size=hidden_size, output_size=5, n_layers=1, dropout=0, path=SAVE_PATH_ADEM):
     state_dict = load_latest_state_dict(path)
     voc = Voc('placeholder_name')
     voc.__dict__ = state_dict['voc_dict']
@@ -15,6 +18,7 @@ def loadADEM(hidden_size=hidden_size, output_size=5, n_layers=1, dropout=0, path
     embedding.to(device)
     model = ADEM(hidden_size, output_size, embedding, n_layers, dropout)
     model.load_state_dict(state_dict['model'])
+
     return model
 
 class ADEM(nn.Module):
@@ -32,8 +36,8 @@ class ADEM(nn.Module):
 
     def forward(self, state, hidden=None):
         # Convert word indexes to  embeddings
-        input_lengths = torch.LongTensor([len(s) for s in state], device=device)
-
+        # input_lengths = torch.LongTensor([len(s) for s in state], device=device)
+        input_lengths = torch.tensor([len(s) for s in state], device=device, dtype=torch.long)
         embedded = self.embedding(state.t())
 
         batch_size = state.size(0)
@@ -61,6 +65,7 @@ class ADEM(nn.Module):
         :param hidden:
         :return: number 0 - 4 corresponding to rating from Alexa dataset
         '''
+
         pred = self(state, hidden)
         return pred.data.max(1, keepdim=True)[1].item()
 

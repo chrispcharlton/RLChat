@@ -11,7 +11,8 @@ class RLGreedySearchDecoder(nn.Module):
 
     def forward(self, state, greedy=True, max_length=MAX_LENGTH):
         # Forward input through encoder model
-        input_length = torch.LongTensor([len(s) for s in state], device=device)
+        # input_length = torch.LongTensor([len(s) for s in state], device=device)
+        input_length = torch.tensor([len(s) for s in state], device=device, dtype=torch.long)
         batch_size = state.size(0)
         encoder_outputs, encoder_hidden = self.encoder(state, input_length)
         # Prepare encoder's final hidden layer to be first hidden input to the decoder

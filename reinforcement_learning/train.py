@@ -7,6 +7,8 @@ from reinforcement_learning.model import RLGreedySearchDecoder
 from collections import namedtuple
 from numpy import mean
 
+from constants import *
+
 Transition = namedtuple('Transition',
                         ('state', 'action', 'next_state', 'reward', 'done', 'prob'))
 
@@ -32,12 +34,14 @@ class ReplayMemory(object):
 
 def seqs_to_padded_tensors(seqs, max_length=None):
     ## TODO: does this need to pad with spaces (token) insteade of 0s?
-    lengths = torch.LongTensor([len(s) if s is not None else 0 for s in seqs], device=device)
+    # lengths = torch.LongTensor([len(s) if s is not None else 0 for s in seqs], device=device)
+    lengths = torch.tensor([len(s) if s is not None else 0 for s in seqs], device=device, dtype=torch.long)
     max_length = max_length if max_length is not None else lengths.max()
     state_tensor = torch.zeros((len(seqs), max_length), device=device).long()
     for idx, (seq, seq_len) in enumerate(zip(seqs, lengths)):
         if seq is not None:
-            state_tensor[idx, :seq_len] = torch.LongTensor(seq)
+            # state_tensor[idx, :seq_len] = torch.LongTensor(seq)
+            state_tensor[idx, :seq_len] = torch.tensor(seq, device=device, dtype=torch.long)
     return state_tensor, lengths
 
 
@@ -173,7 +177,7 @@ def optimize_batch_q(policy, qnet, qnet_optimizer, memory, en_optimizer, de_opti
     return dqn_loss, policy_loss
 
 
-def train(load_dir='data\\save\\cb_model\\cornell movie-dialogs corpus\\2-2_500', save_dir="data\\rl_models\\DQNseq2seq", num_episodes=50, env=None):
+def train(load_dir=SAVE_PATH, save_dir=SAVE_PATH_RL, num_episodes=50, env=None):
     episode, encoder, decoder, encoder_optimizer, decoder_optimizer, voc = loadModel(directory=load_dir)
     policy = RLGreedySearchDecoder(encoder, decoder, voc)
     embedding = nn.Embedding(voc.num_words, hidden_size)
@@ -183,7 +187,7 @@ def train(load_dir='data\\save\\cb_model\\cornell movie-dialogs corpus\\2-2_500'
     env = env if env else Env(voc)
 
     # set episode number to 0 if starting from warm-started model. If loading rl-trained model continue from current number of eps
-    if "\\rl_models\\" not in load_dir:
+    if "/rl_models/" not in load_dir:
         episode = 0
 
     total_rewards = []
@@ -191,6 +195,7 @@ def train(load_dir='data\\save\\cb_model\\cornell movie-dialogs corpus\\2-2_500'
 
     # RL training loop
     print("Training for {} episodes...".format(num_episodes))
+
     for i_episode in range(1, num_episodes+1):
         if i_episode % 10 == 0:
             env.user_sim_model = policy

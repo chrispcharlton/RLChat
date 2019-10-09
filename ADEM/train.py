@@ -5,17 +5,20 @@ from seq2seq import indexesFromSentence
 def prepare_batch(batch, voc):
     index_seqs = [indexesFromSentence(voc, u) + indexesFromSentence(voc, r) for u, r in
                   zip(batch.utterance, batch.response)]
-    lengths = torch.LongTensor([len(s) for s in index_seqs], device=device)
+    # lengths = torch.LongTensor([len(s) for s in index_seqs], device=device)
+    lengths = torch.tensor([len(s) for s in index_seqs], device=device, dtype=torch.long)
 
     seq_tensor = torch.zeros((len(index_seqs), lengths.max()), device=device).long()
+
     for idx, (seq, seq_len) in enumerate(zip(index_seqs, lengths)):
-        seq_tensor[idx, :seq_len] = torch.LongTensor(seq, device=device)
+        # seq_tensor[idx, :seq_len] = torch.LongTensor(seq, device=device)
+        seq_tensor[idx, :seq_len] = torch.tensor(seq, device=device, dtype=torch.long)
 
     lengths, perm_idx = lengths.sort(0, descending=True)
     seq_tensor = seq_tensor[perm_idx]
 
     target = batch.rating
-    target = target[perm_idx]
+    target = target[perm_idx].to(device)
 
     return seq_tensor, target
 
@@ -37,7 +40,7 @@ def train_epoch(epoch, model, optimizer, criterion, data_loader, voc):
 
 def test_epoch(model, data_loader, voc):
 
-    print("evaluating trained model ...")
+    print("\nEvaluating trained model ...")
     correct = 0
     train_data_size = len(data_loader.dataset)
 
