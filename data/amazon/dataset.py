@@ -1,6 +1,6 @@
 from _config import MAX_LENGTH
 from torch.utils.data import Dataset
-from collections import namedtuple
+from collections import namedtuple, Counter
 import random
 import json
 import os
@@ -43,6 +43,23 @@ class AlexaDataset(Dataset):
         id = random.choice(self.ids)
         return [p for p in self.data if p.conversation_id == id]
 
+    def rare_words(self, threshold=3):
+        count = Counter()
+        for pair in self.data:
+            for word in pair.utterance.split(' '):
+                count[word] += 1
+        rare_words = set([word for word, cnt in count.items() if cnt <= threshold])
+        return rare_words
+
+    def trim_rare_words(self, threshold=3):
+        rare_words = self.rare_words(threshold)
+        new_data = []
+        for pair in self.data:
+            words = pair.utterance.split(' ')
+            if set(words).isdisjoint(rare_words):
+                new_data.append(pair)
+        print('{} pairs trimmed, {} remain'.format(len(self.data) - len(new_data), len(new_data)))
+        self.data = new_data
 
 if __name__ == '__main__':
     data = AlexaDataset('train.json')
@@ -50,3 +67,5 @@ if __name__ == '__main__':
     print(data[0])
     c = data.get_conversation('t_bde29ce2-4153-4056-9eb7-f4ad710505fe')
     s = data.random_conversation()
+    r = data.rare_words()
+    data.trim_rare_words(3)
