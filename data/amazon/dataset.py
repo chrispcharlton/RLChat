@@ -21,13 +21,15 @@ def load_alexa_pairs(fname='train.json', dir='./data/amazon'):
 class AlexaDataset(Dataset):
     """Amazon Alexa Conversations dataset."""
 
-    def __init__(self, json, dir='./data/amazon'):
+    def __init__(self, json, dir='./data/amazon', rare_word_threshold=0):
         """
         Args:
             json (string): Name of json file to load
             dir (string): Directory where json is stored
+            rare_word_threshold: Remove pairs which contain words that appear less than or equal to threshold
         """
         self.data = load_alexa_pairs(json, dir)
+        self.trim_rare_words(rare_word_threshold)
         self.ids = list(set([p.conversation_id for p in self.data]))
 
     def __len__(self):
@@ -55,7 +57,7 @@ class AlexaDataset(Dataset):
         rare_words = self.rare_words(threshold)
         new_data = []
         for pair in self.data:
-            words = pair.utterance.split(' ')
+            words = pair.utterance.split(' ') + pair.response.split(' ')
             if set(words).isdisjoint(rare_words):
                 new_data.append(pair)
         print('{} pairs trimmed, {} remain'.format(len(self.data) - len(new_data), len(new_data)))
