@@ -24,35 +24,6 @@ def prepare_batch(batch, voc):
 
     return seq_tensor, target
 
-def train_epoch(epoch, model, optimizer, criterion, train_loader, voc):
-    total_loss = 0
-    for i, sentencePairAndRating in enumerate(train_loader, 1):
-        seq, target =  prepare_batch(sentencePairAndRating, voc)
-        output = model(seq)
-        loss = criterion(output, target)
-        total_loss += loss.item()
-        model.zero_grad()
-        loss.backward()
-        optimizer.step()
-
-        if i % 10 == 0:
-            print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.2f}'.format(epoch, i * len(train_loader), len(),
-                                        100. * i * len(train_loader) / len(), total_loss / i * len(train_loader)))
-    return total_loss
-
-def test_epoch(model, data_loader, voc):
-
-    print("evaluating trained model ...")
-    correct = 0
-    train_data_size = len(data_loader.dataset)
-
-    for batch in data_loader:
-        seq, target = prepare_batch(batch, voc)
-        pred = model.predict(seq)
-        correct += pred.eq(target.data.view_as(pred)).cpu().sum()
-
-    print('\nTest set: Accuracy: {}/{} ({:.0f}%)\n'.format(
-        correct, train_data_size, 100. * correct / train_data_size))
 
 def trainAdversarialDiscriminatorOnLatestSeq2Seq(model, searcher, voc, data_loader, criterion, optimizer,embedding,save_dir,epoch):
 
