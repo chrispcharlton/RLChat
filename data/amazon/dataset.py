@@ -4,6 +4,8 @@ from collections import namedtuple, Counter
 import random
 import json
 import os
+import re
+
 
 Pair = namedtuple('Pair', ('utterance', 'response', 'rating', 'conversation_id'))
 numeric_ratings = {'Poor':0, 'Not Good':1, 'Passable':2, 'Good':3, 'Excellent':4}
@@ -12,13 +14,24 @@ numeric_ratings = {'Poor':0, 'Not Good':1, 'Passable':2, 'Good':3, 'Excellent':4
 def remove_punctuation(sentence):
     sentence
 
+def standardise_sentence(sentence):
+    # sentence = "This is a sentence. Isn't it great?"
+    sentence = sentence.replace(', ',' , ').replace('.',' .').replace('?',' ?').replace('!',' !').replace('  ',' ')
+    # sentence = ''.join(re.findall('[A-Za-z \.\?\!]', sentence))
+    # remove non-alphanumeric characters
+    # lowercase
+    return sentence.lower()
+
 def load_alexa_pairs(fname='train.json', dir='./data/amazon'):
     pairs = []
     data = json.loads(open(os.path.join(dir, fname), 'r').read())
     for c_id, conversation in data.items():
         for utterance, response in zip(conversation['content'][:-1],conversation['content'][1:]):
             if response['turn_rating'] != '' and len(utterance['message'].split(' ')) < MAX_LENGTH and len(response['message'].split(' ')) < MAX_LENGTH:
-                pairs.append(Pair(utterance=utterance['message'], response=response['message'], rating=numeric_ratings[response['turn_rating']], conversation_id=c_id))
+                pairs.append(Pair(utterance=standardise_sentence(utterance['message']),
+                                  response=standardise_sentence(response['message']),
+                                  rating=numeric_ratings[response['turn_rating']],
+                                  conversation_id=c_id))
     return pairs
 
 
@@ -68,9 +81,8 @@ class AlexaDataset(Dataset):
         self.data = new_data
 
 
-
 if __name__ == '__main__':
-    data = AlexaDataset('train.json')
+    data = AlexaDataset('train.json', rare_word_threshold=2)
     print(len(data))
     print(data[0])
     c = data.get_conversation('t_bde29ce2-4153-4056-9eb7-f4ad710505fe')
