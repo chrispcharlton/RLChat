@@ -4,34 +4,29 @@ from collections import namedtuple, Counter
 import random
 import json
 import os
-import re
 
 
-Pair = namedtuple('Pair', ('utterance', 'response', 'rating', 'conversation_id'))
+Pair = namedtuple('Pair', ('utterance', 'response', 'rating', 'conversation_id', 'opening_line'))
 numeric_ratings = {'Poor':0, 'Not Good':1, 'Passable':2, 'Good':3, 'Excellent':4}
 
 
-def remove_punctuation(sentence):
-    sentence
-
 def standardise_sentence(sentence):
-    # sentence = "This is a sentence. Isn't it great?"
     sentence = sentence.replace(', ',' , ').replace('.',' .').replace('?',' ?').replace('!',' !').replace('  ',' ')
-    # sentence = ''.join(re.findall('[A-Za-z \.\?\!]', sentence))
-    # remove non-alphanumeric characters
-    # lowercase
     return sentence.lower()
 
 def load_alexa_pairs(fname='train.json', dir='./data/amazon'):
     pairs = []
     data = json.loads(open(os.path.join(dir, fname), 'r').read())
     for c_id, conversation in data.items():
+        first = True
         for utterance, response in zip(conversation['content'][:-1],conversation['content'][1:]):
             if response['turn_rating'] != '' and len(utterance['message'].split(' ')) < MAX_LENGTH and len(response['message'].split(' ')) < MAX_LENGTH:
                 pairs.append(Pair(utterance=standardise_sentence(utterance['message']),
                                   response=standardise_sentence(response['message']),
                                   rating=numeric_ratings[response['turn_rating']],
-                                  conversation_id=c_id))
+                                  conversation_id=c_id,
+                                  opening_line=first))
+                first = False
     return pairs
 
 
@@ -54,6 +49,17 @@ class AlexaDataset(Dataset):
 
     def __getitem__(self, index):
         return self.data[index]
+
+    @property
+    def conversation_ids(self):
+        return set([p.conversation_id for p in self.data])
+
+    @property
+    def opening_lines(self):
+        return [self.get_conversation(c)[0].utterance for c in self.conversation_ids]
+
+    def random_opening_line(self):
+        return random.choice([p.utterance for p in self.data if p.opening_line])
 
     def get_conversation(self, id):
         return [p for p in self.data if p.conversation_id == id]
