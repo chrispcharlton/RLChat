@@ -3,13 +3,11 @@ from _requirements import *
 from data.amazon.dataset import AlexaDataset
 from data.movie_dialogs.dataset import CornellDataset
 from _config import *
-from ADEM.model import ADEM
 from torch.utils.data import DataLoader
 
-from rl_methods import RLGreedySearchDecoder
-from seq2seq import loadAlexaData
+from reinforcement_learning.model import RLGreedySearchDecoder
+from seq2seq.models import *
 from seq2seq.vocab import loadPrepareData, Voc
-from chat import *
 from Adversarial_Discriminator.train import trainAdversarialDiscriminatorOnLatestSeq2Seq, test_AdversarialDiscriminatorOnLatestSeq2Seq
 
 N_EPOCHS = 20

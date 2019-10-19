@@ -3,6 +3,8 @@ from seq2seq.vocab import MAX_LENGTH, SOS_token, normalizeString
 from seq2seq.prepareTrainData import batch2TrainData, indexesFromSentence
 from seq2seq.vocab import *
 from collections import namedtuple
+from reinforcement_learning.train import seqs_to_padded_tensors
+
 
 TEACHER_FORCING_RATIO = 1.0
 
@@ -16,6 +18,7 @@ def maskNLLLoss(inp, target, mask):
 
 def train(input_variable, lengths, target_variable, mask, max_target_len, encoder, decoder, embedding,
           encoder_optimizer, decoder_optimizer, batch_size, clip, max_length=MAX_LENGTH):
+
 
     # Zero gradients
     encoder_optimizer.zero_grad()
@@ -89,52 +92,82 @@ def train(input_variable, lengths, target_variable, mask, max_target_len, encode
 
     return sum(print_losses) / n_totals
 
-def trainIters(model_name, voc, pairs, encoder, decoder, encoder_optimizer, decoder_optimizer, embedding, encoder_n_layers, decoder_n_layers, save_dir, n_iteration, batch_size, print_every, save_every, clip, corpus_name, loadFilename, checkpoint=None, hidden_size=500):
 
-    # Load batches for each iteration
-    training_batches = [batch2TrainData(voc, [random.choice(pairs) for _ in range(batch_size)])
-                      for _ in range(n_iteration)]
+# def prepare_batch(batch, voc):
+#     input_seqs = [indexesFromSentence(voc, u) for u in batch.utterance]
+#     lengths = torch.tensor([len(s) for s in input_seqs], device=device, dtype=torch.long)
+#     input_tensor = torch.zeros((len(input_seqs), lengths.max()), device=device).long()
+#
+#     output_seqs = [indexesFromSentence(voc, r) for r in batch.response]
+#     output_lengths = torch.tensor([len(s) for s in output_seqs], device=device, dtype=torch.long)
+#     output_tensor = torch.zeros((len(output_seqs), lengths.max()), device=device).long()
+#
+#     for idx, (seq, seq_len) in enumerate(zip(input_seqs, lengths)):
+#         input_tensor[idx, :seq_len] = torch.tensor(seq, device=device, dtype=torch.long)
+#
+#     for idx, (seq, seq_len) in enumerate(zip(output_seqs, output_lengths)):
+#         output_tensor[idx, :seq_len] = torch.tensor(seq, device=device, dtype=torch.long)
+#
+#     lengths, perm_idx = lengths.sort(0, descending=True)
+#     input_tensor = input_tensor[perm_idx]
+#     output_tensor = output_tensor[perm_idx]
+#
+#     return input_tensor, output_tensor
 
-    # Initializations
-    print('Initializing ...')
-    start_iteration = 1
-    print_loss = 0
-    if loadFilename and checkpoint:
-        start_iteration = checkpoint['iteration'] + 1
 
-    # Training loop
-    print("Training...")
-    for iteration in range(start_iteration, n_iteration + 1):
-        training_batch = training_batches[iteration - 1]
-        # Extract fields from batch
-        input_variable, lengths, target_variable, mask, max_target_len = training_batch
+def train_epoch(epoch, model, optimizer, criterion, data_loader, voc):
+    total_loss = 0
+    for i, batch in enumerate(data_loader, 1):
+        seq, target = batch2TrainData(voc, zip(batch.utterance, batch.response))
+        output = model(seq)
+        loss = criterion(output, target)
+        total_loss += loss.item()
+        model.zero_grad()
+        loss.backward()
+        optimizer.step()
 
-        # Run a training iteration with batch
-        loss = train(input_variable, lengths, target_variable, mask, max_target_len, encoder,
-                     decoder, embedding, encoder_optimizer, decoder_optimizer, batch_size, clip)
-        print_loss += loss
+        if i % 10 == 0:
+            print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.2f}'.format(epoch, i * len(batch[0]), len(data_loader.dataset),
+                                        100. * i * len(batch[0]) / len(data_loader.dataset), total_loss / i * len(batch)))
+    return total_loss
 
-        # Print progress
-        if iteration % print_every == 0:
-            print_loss_avg = print_loss / print_every
-            print("Iteration: {}; Percent complete: {:.1f}%; Average loss: {:.4f}".format(iteration, iteration / n_iteration * 100, print_loss_avg))
-            print_loss = 0
 
-        # Save checkpoint
-        if (iteration % save_every == 0):
-            directory = os.path.join(save_dir, model_name, corpus_name, '{}-{}_{}'.format(encoder_n_layers, decoder_n_layers, hidden_size))
-            if not os.path.exists(directory):
-                os.makedirs(directory)
-            torch.save({
-                'iteration': iteration,
-                'en': encoder.state_dict(),
-                'de': decoder.state_dict(),
-                'en_opt': encoder_optimizer.state_dict(),
-                'de_opt': decoder_optimizer.state_dict(),
-                'loss': loss,
-                'voc_dict': voc.__dict__,
-                'embedding': embedding.state_dict()
-            }, os.path.join(directory, '{}_{}.tar'.format(iteration, 'checkpoint')))
+def trainEpochs(model_name, voc, n_epochs, data_loader, encoder, decoder, encoder_optimizer, decoder_optimizer, embedding, encoder_n_layers, decoder_n_layers, save_dir, print_every, clip, corpus_name, loadFilename, checkpoint=None, hidden_size=500):
+
+    for epoch in range(1, n_epochs+1):
+        print_loss = 0
+        if loadFilename and checkpoint:
+            epoch = checkpoint['epoch'] + epoch
+
+        for i, batch in enumerate(data_loader, 1):
+            input_variable, lengths, target_variable, mask, max_target_len = batch2TrainData(voc, [p for p in zip(batch.utterance, batch.response)])
+
+            # Run a training iteration with batch
+            loss = train(input_variable, lengths, target_variable, mask, max_target_len, encoder,
+                         decoder, embedding, encoder_optimizer, decoder_optimizer, data_loader.batch_size, clip)
+            print_loss += loss
+
+            # Print progress
+            if i % print_every == 0:
+                print_loss_avg = print_loss / print_every
+                print("Epoch: {}; Batch: {}/{}; Percent complete: {:.1f}%; Average loss: {:.4f}".format(epoch, i, len(data_loader),(i * data_loader.batch_size) / len(data_loader), print_loss_avg))
+                print_loss = 0
+
+            # Save checkpoint
+        directory = os.path.join(save_dir, model_name, corpus_name, '{}-{}_{}'.format(encoder_n_layers, decoder_n_layers, hidden_size))
+        if not os.path.exists(directory):
+            os.makedirs(directory)
+        torch.save({
+            'epoch': epoch,
+            'en': encoder.state_dict(),
+            'de': decoder.state_dict(),
+            'en_opt': encoder_optimizer.state_dict(),
+            'de_opt': decoder_optimizer.state_dict(),
+            'loss': loss,
+            'voc_dict': voc.__dict__,
+            'embedding': embedding.state_dict()
+        }, os.path.join(directory, '{}_{}.tar'.format(epoch, 'checkpoint')))
+
 
 class GreedySearchDecoder(nn.Module):
     def __init__(self, encoder, decoder):
