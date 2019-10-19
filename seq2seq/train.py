@@ -1,85 +1,30 @@
 from _requirements import *
 from seq2seq.models import EncoderRNN, LuongAttnDecoderRNN
-from seq2seq.prepareTrainData import batch2TrainData
-from seq2seq.processText import loadLines, loadConversations, extractSentencePairs, printLines, trimRareWords
 from seq2seq.trainingMethods import trainEpochs
-from seq2seq.vocab import loadPrepareData, Voc
+from seq2seq.vocab import Voc
 from data.amazon.dataset import AlexaDataset
 from torch.utils.data import DataLoader
-
-
 from constants import *
 
+
 def train():
-    # corpus_name = "cornell movie-dialogs corpus"
-    # corpus = os.path.join(BASE_DIR, "data", corpus_name)
-    # Define path to new file
-    # datafile = os.path.join(corpus, "formatted_movie_lines.txt")
 
-    # delimiter = '\t'
-    # Unescape the delimiter
-    # delimiter = str(codecs.decode(delimiter, "unicode_escape"))
-
-    # Initialize lines dict, conversations list, and field ids
-    # MOVIE_LINES_FIELDS = ["lineID", "characterID", "movieID", "character", "text"]
-    # MOVIE_CONVERSATIONS_FIELDS = ["character1ID", "character2ID", "movieID", "utteranceIDs"]
-
-    # Load lines and process conversations
-    # print("\nProcessing corpus...")
-    # lines = loadLines(os.path.join(corpus, "movie_lines.txt"), MOVIE_LINES_FIELDS)
-    # print("\nLoading conversations...")
-    # conversations = loadConversations(os.path.join(corpus, "movie_conversations.txt"),
-    #                                   lines, MOVIE_CONVERSATIONS_FIELDS)
-
-    # Write new csv file
-    # print("\nWriting newly formatted file...")
-    # with open(datafile, 'w', encoding='utf-8') as outputfile:
-    #     writer = csv.writer(outputfile, delimiter=delimiter, lineterminator='\n')
-    #     for pair in extractSentencePairs(conversations):
-    #         writer.writerow(pair)
-
-    # Print a sample of lines
-    # print("\nSample lines from file:")
-    # printLines(datafile)
-
-    # Load/Assemble voc and pairs
     save_dir = os.path.join("data", "save")
-    # voc, pairs = loadPrepareData(corpus, corpus_name, datafile, save_dir)
-    # Print some pairs to validate
-    # print("\npairs:")
-    # for pair in pairs[:10]:
-    #     print(pair)
-
-    # MIN_COUNT = 3  # Minimum word count threshold for trimming
-
-    # Trim voc and pairs
-    # pairs = trimRareWords(voc, pairs, MIN_COUNT)
-
-    # save_dir = os.path.join(BASE_DIR, "data", "amazon", "models")
-    # corpus_name = "Alexa"
-    # voc, pairs = loadAlexaData()
-
     data = AlexaDataset()
     voc = Voc.from_dataset(data)
 
     # Configure models
     model_name = 'cb_model'
     attn_model = 'dot'
-    #attn_model = 'general'
-    #attn_model = 'concat'
     hidden_size = 500
     encoder_n_layers = 2
     decoder_n_layers = 2
     dropout = 0.1
-    batch_size = 64
 
     # Set checkpoint to load from; set to None if starting from scratch
     loadFilename = None
-    checkpoint_iter = 4000
-    #loadFilename = os.path.join(save_dir, model_name, corpus_name,
-    #                            '{}-{}_{}'.format(encoder_n_layers, decoder_n_layers, hidden_size),
-    #                            '{}_checkpoint.tar'.format(checkpoint_iter))
-
+    #loadFilename = os.path.join(save_dir, model_name, corpus_name, '{}-{}_{}'.format(encoder_n_layers, decoder_n_layers,
+    #                               hidden_size), '{}_checkpoint.tar'.format(checkpoint_iter))
 
     # Load model if a loadFilename is provided
     if loadFilename:
@@ -117,9 +62,7 @@ def train():
 
     learning_rate = 0.0001
     decoder_learning_ratio = 5.0
-    n_iteration = 4000
     print_every = 1
-    save_every = 500
 
     # Ensure dropout layers are in train mode
     encoder.train()
@@ -144,8 +87,7 @@ def train():
             if isinstance(v, torch.Tensor):
                 state[k] = v.cuda()
 
-
-    BATCH_SIZE = 64
+    BATCH_SIZE = 256
     n_epochs = 5
     train_data = AlexaDataset('train.json', rare_word_threshold=3)
     train_loader = DataLoader(train_data, batch_size=BATCH_SIZE, shuffle=True)
@@ -153,7 +95,6 @@ def train():
 
     # Run training iterations
     print("Starting Training!")
-
     trainEpochs(model_name, voc, n_epochs, train_loader, encoder, decoder, encoder_optimizer, decoder_optimizer, embedding,
                encoder_n_layers, decoder_n_layers, save_dir, print_every, clip, corpus_name, loadFilename, checkpoint, hidden_size)
 
