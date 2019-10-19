@@ -1,5 +1,12 @@
 from _requirements import *
 from seq2seq import indexesFromSentence
+from ADEM import *
+from data.amazon.dataset import AlexaDataset
+from _config import *
+from ADEM.model import ADEM
+from torch.utils.data import DataLoader
+from seq2seq import Voc
+from constants import *
 
 
 def prepare_batch(batch, voc):
@@ -21,6 +28,7 @@ def prepare_batch(batch, voc):
     target = target[perm_idx].to(device)
 
     return seq_tensor, target
+
 
 def train_epoch(epoch, model, optimizer, criterion, data_loader, voc):
     total_loss = 0
@@ -51,3 +59,39 @@ def test_epoch(model, data_loader, voc):
 
     print('\nTest set: Accuracy: {}/{} ({:.0f}%)\n'.format(
         correct, train_data_size, 100. * correct / train_data_size))
+
+
+def train(epochs=5):
+
+    BATCH_SIZE = 256
+    output_size = 5
+
+    ##TODO: shuffle train/test between epochs as some words are exclusive between the pre-defined sets
+    voc = Voc.from_dataset(AlexaDataset(rare_word_threshold=0))
+
+    train_data = AlexaDataset('train.json', rare_word_threshold=3)
+    train_loader = DataLoader(train_data, batch_size=BATCH_SIZE, shuffle=True)
+
+    test_data = AlexaDataset('test_freq.json', rare_word_threshold=3)
+    test_loader = DataLoader(test_data, batch_size=BATCH_SIZE)
+
+    embedding = nn.Embedding(voc.num_words, hidden_size)
+    model = ADEM(hidden_size, output_size, embedding).to(device)
+
+    optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
+    criterion = nn.CrossEntropyLoss()
+
+    print('Training...')
+    for epoch in range(1, epochs + 1):
+        loss = train_epoch(epoch, model, optimizer, criterion, train_loader, voc)
+
+        torch.save({
+            'iteration': epoch,
+            'model': model.state_dict(),
+            'opt': optimizer.state_dict(),
+            'loss': loss,
+            'voc_dict': voc.__dict__,
+            'embedding': embedding.state_dict()
+        }, os.path.join(BASE_DIR, SAVE_PATH_ADEM, '{}_{}.tar'.format(epoch, 'epochs')))
+
+        test_epoch(model, test_loader, voc)
