@@ -33,14 +33,20 @@ def load_alexa_pairs(fname='train.json', dir='./data/amazon'):
 class AlexaDataset(Dataset):
     """Amazon Alexa Conversations dataset."""
 
-    def __init__(self, json, dir='./data/amazon', rare_word_threshold=0):
+    def __init__(self, json=None, dir='./data/amazon', rare_word_threshold=0):
         """
         Args:
             json (string): Name of json file to load
             dir (string): Directory where json is stored
             rare_word_threshold: Remove pairs which contain words that appear less than or equal to threshold
         """
-        self.data = load_alexa_pairs(json, dir)
+        self.data = []
+        if json is not None:
+            self.add_pairs_from_json(json, dir)
+        else:
+            for f in [f for f in os.listdir(dir) if f.endswith('.json')]:
+                print("Added {} to dataset".format(f))
+                self.add_pairs_from_json(f, dir)
         self._trim_rare_words(rare_word_threshold)
         self.ids = list(set([p.conversation_id for p in self.data]))
 
@@ -57,6 +63,9 @@ class AlexaDataset(Dataset):
     @property
     def opening_lines(self):
         return [self.get_conversation(c)[0].utterance for c in self.conversation_ids]
+
+    def add_pairs_from_json(self, json, dir):
+        self.data += load_alexa_pairs(json, dir)
 
     def random_opening_line(self):
         return random.choice([p.utterance for p in self.data if p.opening_line])
@@ -88,7 +97,7 @@ class AlexaDataset(Dataset):
 
 
 if __name__ == '__main__':
-    data = AlexaDataset('train.json', rare_word_threshold=2)
+    data = AlexaDataset(rare_word_threshold=2)
     print(len(data))
     print(data[0])
     c = data.get_conversation('t_bde29ce2-4153-4056-9eb7-f4ad710505fe')
