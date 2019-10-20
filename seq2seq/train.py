@@ -8,53 +8,56 @@ from seq2seq.vocab import loadPrepareData, loadAlexaData
 from constants import *
 
 def train():
-    corpus_name = "cornell movie-dialogs corpus"
-    corpus = os.path.join(BASE_DIR, "data", corpus_name)
-    # Define path to new file
-    datafile = os.path.join(corpus, "formatted_movie_lines.txt")
-
-    delimiter = '\t'
-    # Unescape the delimiter
-    delimiter = str(codecs.decode(delimiter, "unicode_escape"))
-
-    # Initialize lines dict, conversations list, and field ids
-    MOVIE_LINES_FIELDS = ["lineID", "characterID", "movieID", "character", "text"]
-    MOVIE_CONVERSATIONS_FIELDS = ["character1ID", "character2ID", "movieID", "utteranceIDs"]
-
-    # Load lines and process conversations
-    print("\nProcessing corpus...")
-    lines = loadLines(os.path.join(corpus, "movie_lines.txt"), MOVIE_LINES_FIELDS)
-    print("\nLoading conversations...")
-    conversations = loadConversations(os.path.join(corpus, "movie_conversations.txt"),
-                                      lines, MOVIE_CONVERSATIONS_FIELDS)
-
-    # Write new csv file
-    print("\nWriting newly formatted file...")
-    with open(datafile, 'w', encoding='utf-8') as outputfile:
-        writer = csv.writer(outputfile, delimiter=delimiter, lineterminator='\n')
-        for pair in extractSentencePairs(conversations):
-            writer.writerow(pair)
-
-    # Print a sample of lines
-    print("\nSample lines from file:")
-    printLines(datafile)
-
-    # Load/Assemble voc and pairs
-    save_dir = os.path.join("data", "save")
-    voc, pairs = loadPrepareData(corpus, corpus_name, datafile, save_dir)
-    # Print some pairs to validate
-    print("\npairs:")
-    for pair in pairs[:10]:
-        print(pair)
-
-    MIN_COUNT = 3  # Minimum word count threshold for trimming
-
-    # Trim voc and pairs
-    pairs = trimRareWords(voc, pairs, MIN_COUNT)
+    # corpus_name = "cornell movie-dialogs corpus"
+    # corpus = os.path.join(BASE_DIR, "data", corpus_name)
+    # # Define path to new file
+    # datafile = os.path.join(corpus, "formatted_movie_lines.txt")
+    #
+    # delimiter = '\t'
+    # # Unescape the delimiter
+    # delimiter = str(codecs.decode(delimiter, "unicode_escape"))
+    #
+    # # Initialize lines dict, conversations list, and field ids
+    # MOVIE_LINES_FIELDS = ["lineID", "characterID", "movieID", "character", "text"]
+    # MOVIE_CONVERSATIONS_FIELDS = ["character1ID", "character2ID", "movieID", "utteranceIDs"]
+    #
+    # # Load lines and process conversations
+    # print("\nProcessing corpus...")
+    # lines = loadLines(os.path.join(corpus, "movie_lines.txt"), MOVIE_LINES_FIELDS)
+    # print("\nLoading conversations...")
+    # conversations = loadConversations(os.path.join(corpus, "movie_conversations.txt"),
+    #                                   lines, MOVIE_CONVERSATIONS_FIELDS)
+    #
+    # # Write new csv file
+    # print("\nWriting newly formatted file...")
+    # with open(datafile, 'w', encoding='utf-8') as outputfile:
+    #     writer = csv.writer(outputfile, delimiter=delimiter, lineterminator='\n')
+    #     for pair in extractSentencePairs(conversations):
+    #         writer.writerow(pair)
+    #
+    # # Print a sample of lines
+    # print("\nSample lines from file:")
+    # printLines(datafile)
+    #
+    # # Load/Assemble voc and pairs
+    # save_dir = os.path.join("data", "save")
+    # voc, pairs = loadPrepareData(corpus, corpus_name, datafile, save_dir)
+    # # Print some pairs to validate
+    # print("\npairs:")
+    # for pair in pairs[:10]:
+    #     print(pair)
+    #
+    # MIN_COUNT = 3  # Minimum word count threshold for trimming
+    #
+    # # Trim voc and pairs
+    # pairs = trimRareWords(voc, pairs, MIN_COUNT)
 
     # save_dir = os.path.join(BASE_DIR, "data", "amazon", "models")
-    # corpus_name = "Alexa"
-    # voc, pairs = loadAlexaData()
+    save_dir = os.path.join(BASE_DIR, "data", "save")
+    corpus_name = "Alexa"
+    voc, pairs = loadAlexaData()
+
+    # train_data = AlexaDataset('train.json')
 
     # Example for validation
     small_batch_size = 5

@@ -13,7 +13,7 @@ import os
 dir_path = os.path.dirname(os.path.realpath(__file__))
 
 class CornellDataset(Dataset):
-    """Amazon Alexa Conversations dataset."""
+    """Cornell Conversations dataset."""
 
     def __init__(self, filename, voc=None, isTrainSet=True, testSetFraction = 0.1):
         """
@@ -22,7 +22,9 @@ class CornellDataset(Dataset):
             dir (string): Directory where the file is stored
         """
 
-        self.data, self.voc = load_pairs(filename, dir_path)
+        # self.data, self.voc = load_pairs(filename, dir_path)
+        self.data, self.voc = load_cornell_pairs(filename, dir_path)
+
         if(not voc == None):
             self.data = trimPairsToVocab(self.data, voc)
             self.voc = voc
@@ -30,7 +32,7 @@ class CornellDataset(Dataset):
             self.data = self.data[: len(self.data) - math.ceil(len(self.data)*testSetFraction)]
         else:
             self.data = self.data[len(self.data) - math.ceil(len(self.data)*testSetFraction) :]
-        self.ids = list(set([p.conversation_id for p in self.data]))
+        # self.ids = list(set([p.conversation_id for p in self.data]))  # temp
 
     def __len__(self):
         return len(self.data)
@@ -79,7 +81,7 @@ def load_pairs(fname='formatted_movie_lines.txt', dir='./data/movie_dialogs'):
 
     # Trim voc and pairs
     voc, pairs = trimRareWords(voc, pairs, MIN_COUNT)
-    return  pairs, voc
+    return pairs, voc
 
 
 def trimRareWords(voc, pairs, MIN_COUNT):

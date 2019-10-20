@@ -1,4 +1,9 @@
 venv/
 .idea/
+pt_examples/
 *.pyc
 *.tar
+*.iml
+*.DS_Store
+slack_chat.py
+requirements.txt
