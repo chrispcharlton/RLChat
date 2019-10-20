@@ -110,7 +110,7 @@ def trainEpochs(model_name, voc, n_epochs, data_loader, encoder, decoder, encode
             # Print progress
             if i % print_every == 0:
                 print_loss_avg = print_loss / print_every
-                print("Epoch: {}; Batch: {}/{}; Percent complete: {:.1f}%; Average loss: {:.4f}".format(epoch, i, len(data_loader),(i * data_loader.batch_size) / len(data_loader), print_loss_avg))
+                print("Epoch: {}; Batch: {}/{}; Percent complete: {:.1f}%; Average loss: {:.4f}".format(epoch, i, len(data_loader), (i / len(data_loader)) * 100, print_loss_avg))
                 print_loss = 0
 
             # Save checkpoint
