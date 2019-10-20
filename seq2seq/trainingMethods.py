@@ -70,7 +70,6 @@ def train(input_variable, lengths, target_variable, mask, max_target_len, encode
             )
             # No teacher forcing: next input is decoder's own current output
             _, topi = decoder_output.topk(1)
-            # decoder_input = torch.LongTensor([[topi[i][0] for i in range(batch_size)]], device=device)
             decoder_input = torch.tensor([[topi[i][0] for i in range(batch_size)]], device=device, dtype=torch.long)
             decoder_input = decoder_input.to(device)
             # Calculate and accumulate loss
@@ -91,45 +90,6 @@ def train(input_variable, lengths, target_variable, mask, max_target_len, encode
     decoder_optimizer.step()
 
     return sum(print_losses) / n_totals
-
-
-# def prepare_batch(batch, voc):
-#     input_seqs = [indexesFromSentence(voc, u) for u in batch.utterance]
-#     lengths = torch.tensor([len(s) for s in input_seqs], device=device, dtype=torch.long)
-#     input_tensor = torch.zeros((len(input_seqs), lengths.max()), device=device).long()
-#
-#     output_seqs = [indexesFromSentence(voc, r) for r in batch.response]
-#     output_lengths = torch.tensor([len(s) for s in output_seqs], device=device, dtype=torch.long)
-#     output_tensor = torch.zeros((len(output_seqs), lengths.max()), device=device).long()
-#
-#     for idx, (seq, seq_len) in enumerate(zip(input_seqs, lengths)):
-#         input_tensor[idx, :seq_len] = torch.tensor(seq, device=device, dtype=torch.long)
-#
-#     for idx, (seq, seq_len) in enumerate(zip(output_seqs, output_lengths)):
-#         output_tensor[idx, :seq_len] = torch.tensor(seq, device=device, dtype=torch.long)
-#
-#     lengths, perm_idx = lengths.sort(0, descending=True)
-#     input_tensor = input_tensor[perm_idx]
-#     output_tensor = output_tensor[perm_idx]
-#
-#     return input_tensor, output_tensor
-
-
-def train_epoch(epoch, model, optimizer, criterion, data_loader, voc):
-    total_loss = 0
-    for i, batch in enumerate(data_loader, 1):
-        seq, target = batch2TrainData(voc, zip(batch.utterance, batch.response))
-        output = model(seq)
-        loss = criterion(output, target)
-        total_loss += loss.item()
-        model.zero_grad()
-        loss.backward()
-        optimizer.step()
-
-        if i % 10 == 0:
-            print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.2f}'.format(epoch, i * len(batch[0]), len(data_loader.dataset),
-                                        100. * i * len(batch[0]) / len(data_loader.dataset), total_loss / i * len(batch)))
-    return total_loss
 
 
 def trainEpochs(model_name, voc, n_epochs, data_loader, encoder, decoder, encoder_optimizer, decoder_optimizer, embedding, encoder_n_layers, decoder_n_layers, save_dir, print_every, clip, corpus_name, loadFilename, checkpoint=None, hidden_size=500):

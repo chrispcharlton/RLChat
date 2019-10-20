@@ -4,6 +4,7 @@ from seq2seq.trainingMethods import trainEpochs
 from seq2seq.vocab import Voc
 from data.amazon.dataset import AlexaDataset
 from torch.utils.data import DataLoader
+from _config import *
 from constants import *
 
 
@@ -12,14 +13,6 @@ def train():
     save_dir = os.path.join("data", "save")
     data = AlexaDataset()
     voc = Voc.from_dataset(data)
-
-    # Configure models
-    model_name = 'cb_model'
-    attn_model = 'dot'
-    hidden_size = 500
-    encoder_n_layers = 2
-    decoder_n_layers = 2
-    dropout = 0.1
 
     # Set checkpoint to load from; set to None if starting from scratch
     loadFilename = None
@@ -52,17 +45,11 @@ def train():
     if loadFilename:
         encoder.load_state_dict(encoder_sd)
         decoder.load_state_dict(decoder_sd)
+
     # Use appropriate device
     encoder = encoder.to(device)
     decoder = decoder.to(device)
     print('Models built and ready to go!')
-
-    # Configure training/optimization
-    clip = 50.0
-
-    learning_rate = 0.0001
-    decoder_learning_ratio = 5.0
-    print_every = 1
 
     # Ensure dropout layers are in train mode
     encoder.train()
@@ -87,8 +74,6 @@ def train():
             if isinstance(v, torch.Tensor):
                 state[k] = v.cuda()
 
-    BATCH_SIZE = 256
-    n_epochs = 5
     train_data = AlexaDataset('train.json', rare_word_threshold=3)
     train_loader = DataLoader(train_data, batch_size=BATCH_SIZE, shuffle=True)
     corpus_name = 'Alexa'

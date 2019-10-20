@@ -1,3 +1,4 @@
+model_name = 'cb_model'
 attn_model = 'dot'
 hidden_size = 500
 encoder_n_layers = 2
@@ -6,6 +7,10 @@ dropout = 0.1
 batch_size = 64
 learning_rate = 0.0001
 decoder_learning_ratio = 5.0
+print_every = 1
+clip = 50.0
+BATCH_SIZE = 256
+n_epochs = 5
 
 save_every = 10
 
@@ -15,3 +20,4 @@ SOS_token = 1  # Start-of-sentence token
 EOS_token = 2  # End-of-sentence token
 
 MAX_LENGTH = 30  # Maximum sentence length to consider
+
