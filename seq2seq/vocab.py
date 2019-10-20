@@ -5,12 +5,26 @@ from seq2seq.processText import load_alexa_pairs
 
 class Voc:
     def __init__(self, name):
+
         self.name = name
         self.trimmed = False
         self.word2index = {}
         self.word2count = {}
         self.index2word = {PAD_token: "PAD", SOS_token: "SOS", EOS_token: "EOS"}
         self.num_words = 3  # Count SOS, EOS, PAD
+
+    @classmethod
+    def from_dataset(cls, dataset):
+        print("Start preparing training data ...")
+        # load pairs and initialise Voc
+        voc = cls('name is a useless parameter')
+        # filter pairs longer than MAX_LENGTH
+        print("Counting words...")
+        for pair in dataset:
+            voc.addSentence(pair.utterance)
+            voc.addSentence(pair.response)
+        print("Counted words:", voc.num_words)
+        return voc
 
     def addSentence(self, sentence):
         for word in sentence.split(' '):
@@ -118,3 +132,4 @@ def loadAlexaData():
         voc.addSentence(pair[1])
     print("Counted words:", voc.num_words)
     return voc, pairs
+

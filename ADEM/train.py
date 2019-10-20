@@ -1,6 +1,13 @@
 from _requirements import *
 from _config import *
 from seq2seq import indexesFromSentence
+from ADEM import *
+from data.amazon.dataset import AlexaDataset
+from _config import *
+from ADEM.model import ADEM
+from torch.utils.data import DataLoader
+from seq2seq import Voc
+from constants import *
 
 
 def prepare_batch(batch, voc):
@@ -22,6 +29,7 @@ def prepare_batch(batch, voc):
     target = target[perm_idx].to(device)
 
     return seq_tensor, target
+
 
 def train_epoch(epoch, model, optimizer, criterion, data_loader, voc):
     total_loss = 0
@@ -54,26 +62,23 @@ def test_epoch(model, data_loader, voc):
         correct, train_data_size, 100. * correct / train_data_size))
 
 
-def main():
-    # from ADEM import *
-    from data.amazon.dataset import AlexaDataset
-    # from _config import *
-    from ADEM.model import ADEM
-    from torch.utils.data import DataLoader
-    from seq2seq import loadAlexaData
 
-    N_EPOCHS = 5
+
+def train(epochs=5):
+
+
     BATCH_SIZE = 256
     output_size = 5
 
     ##TODO: shuffle train/test between epochs as some words are exclusive between the pre-defined sets
 
-    voc, pairs = loadAlexaData()
+    voc = Voc.from_dataset(AlexaDataset(rare_word_threshold=0))
 
-    train_data = AlexaDataset('train.json')
+    train_data = AlexaDataset('train.json', rare_word_threshold=3)
     train_loader = DataLoader(train_data, batch_size=BATCH_SIZE, shuffle=True)
 
-    test_data = AlexaDataset('test_freq.json')
+    test_data = AlexaDataset('test_freq.json', rare_word_threshold=3)
+
     test_loader = DataLoader(test_data, batch_size=BATCH_SIZE)
 
     embedding = nn.Embedding(voc.num_words, hidden_size)
@@ -83,7 +88,9 @@ def main():
     criterion = nn.CrossEntropyLoss()
 
     print('Training...')
-    for epoch in range(1, N_EPOCHS + 1):
+
+
+    for epoch in range(1, epochs + 1):
         loss = train_epoch(epoch, model, optimizer, criterion, train_loader, voc)
 
         torch.save({

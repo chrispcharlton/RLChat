@@ -1,7 +1,9 @@
 import os
 import argparse
 
+
 from _requirements import *
+
 from constants import *
 
 
@@ -43,8 +45,8 @@ if __name__ == '__main__':
             train()
 
         elif args.model == 'adem':
-            from ADEM.train import main
-            main()
+            from ADEM.train import train
+            train()
 
 
         elif args.model == 'discriminator':
@@ -60,6 +62,7 @@ if __name__ == '__main__':
 
             # evaluate trained model
             chat(policy, env)
+
 
 
     elif args.subparser_name == 'chat':
@@ -114,3 +117,4 @@ if __name__ == '__main__':
 
             # evaluate trained model
             chat(policy, env)
+
