@@ -76,6 +76,7 @@ def normalizeString(s):
     s = re.sub(r"([.!?])", r" \1", s)
     s = re.sub(r"[^a-zA-Z.!?]+", r" ", s)
     s = re.sub(r"\s+", r" ", s).strip()
+
     return s
 
 # Read query/response pairs and return a voc object

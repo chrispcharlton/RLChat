@@ -1,0 +1,2 @@
+torch
+slackclient==2.2.1

@@ -16,7 +16,7 @@ class DQN(nn.Module):
 
     def forward(self, state, hidden=None):
         # Convert word indexes to  embeddings
-        input_lengths = torch.LongTensor([len(s) for s in state], device=device)
+        input_lengths = torch.tensor([len(s) for s in state], device=device, dtype=torch.long)
 
         embedded = self.embedding(state.t())
 

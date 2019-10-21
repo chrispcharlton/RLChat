@@ -16,7 +16,7 @@ def loadADEM(hidden_size=hidden_size, output_size=5, n_layers=1, dropout=0, path
     embedding = nn.Embedding(voc.num_words, hidden_size)
     embedding.load_state_dict(state_dict['embedding'])
     embedding.to(device)
-    model = ADEM(hidden_size, output_size, embedding, n_layers, dropout)
+    model = ADEM(hidden_size, output_size, embedding, n_layers, dropout).to(device)
     model.load_state_dict(state_dict['model'])
 
     return model
@@ -39,7 +39,6 @@ class ADEM(nn.Module):
         # input_lengths = torch.LongTensor([len(s) for s in state], device=device)
         input_lengths = torch.tensor([len(s) for s in state], device=device, dtype=torch.long)
         embedded = self.embedding(state.t())
-
         batch_size = state.size(0)
         hidden = self._init_hidden(batch_size) if hidden is None else hidden
 

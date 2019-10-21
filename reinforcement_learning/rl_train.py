@@ -8,7 +8,7 @@ def train(load_dir='data\\save\\cb_model\\movie_dialogs\\2-2_500', save_dir="dat
     episode, encoder, decoder, encoder_optimizer, decoder_optimizer, voc = loadModel(directory=load_dir)
     searcher = RLGreedySearchDecoder(encoder, decoder, voc)
     embedding = nn.Embedding(voc.num_words, hidden_size)
-    policy = DQN(hidden_size, embedding)
+    policy = DQN(hidden_size, embedding).to(device)
     policy_optimizer = torch.optim.Adam(policy.parameters(), lr=learning_rate)
     memory = ReplayMemory(1000)
     env = env if env else Env(voc)

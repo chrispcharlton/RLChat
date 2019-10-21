@@ -12,6 +12,7 @@ def load_latest_state_dict(savepath):
         # savepath = os.path.join("C:\\Users\\Christopher\\PycharmProjects\\RLChat", savepath)
         savepath = os.path.join(BASE_DIR, savepath)
         saves = os.listdir(savepath)
+    saves = [x for x in os.listdir(savepath) if x.endswith('.tar')]  # ignore .DS file on Mac
     max_save = saves[0]
     for save in saves:
         if int(save.split('_')[0]) > int(max_save.split('_')[0]):

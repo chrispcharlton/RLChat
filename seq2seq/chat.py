@@ -5,17 +5,19 @@ from seq2seq.vocab import Voc
 
 from constants import *
 
-def load_latest_state_dict():
-    savepath = SAVE_PATH
-    saves = os.listdir(savepath)
+def load_latest_state_dict(savepath=SAVE_PATH):
+    # savepath = SAVE_PATH
+    # saves = os.listdir(savepath)
+    saves = [x for x in os.listdir(savepath) if x.endswith('.tar')]  # ignore .DS Mac file type
     max_save = saves[0]
     for save in saves:
          if int(save.split('_')[0]) > int(max_save.split('_')[0]):
              max_save = save
+    print(f'Loading from latest checkpoint: {max_save}...')
     return torch.load(open(os.path.join(savepath, max_save), 'rb'), map_location=device)
 
-def chat_with_latest():
-    model = load_latest_state_dict()
+def chat_with_latest(savepath=SAVE_PATH):
+    model = load_latest_state_dict(savepath)
 
     attn_model = 'dot'
     #attn_model = 'general'
@@ -41,4 +43,7 @@ def chat_with_latest():
     evaluateInput(encoder, decoder, searcher, voc)
 
 if __name__ == '__main__':
-    chat_with_latest()
+    models_dir = 'cb_model/cb_model/Alexa/2-2_500'
+    model_path = os.path.join(BASE_DIR, 'data', 'save', models_dir)
+    print(f'Loading latest model from {models_dir} for chat...')
+    chat_with_latest(model_path)

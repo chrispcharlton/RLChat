@@ -1,4 +1,5 @@
 from _requirements import *
+from _config import *
 from seq2seq import indexesFromSentence
 from ADEM import *
 from data.amazon.dataset import AlexaDataset
@@ -61,19 +62,21 @@ def test_epoch(model, data_loader, voc):
         correct, train_data_size, 100. * correct / train_data_size))
 
 
+def train(epochs=50):
 
-def train(epochs=5):
 
     BATCH_SIZE = 256
     output_size = 5
 
     ##TODO: shuffle train/test between epochs as some words are exclusive between the pre-defined sets
+
     voc = Voc.from_dataset(AlexaDataset(rare_word_threshold=0))
 
     train_data = AlexaDataset('train.json', rare_word_threshold=3)
     train_loader = DataLoader(train_data, batch_size=BATCH_SIZE, shuffle=True)
 
     test_data = AlexaDataset('test_freq.json', rare_word_threshold=3)
+
     test_loader = DataLoader(test_data, batch_size=BATCH_SIZE)
 
     embedding = nn.Embedding(voc.num_words, hidden_size)
@@ -86,17 +89,21 @@ def train(epochs=5):
     log.write('batch,loss')
 
     print('Training...')
+
+
     for epoch in range(1, epochs + 1):
         loss = train_epoch(epoch, model, optimizer, criterion, train_loader, voc)
         for i, l in enumerate(loss):
             log.write(','.join([i+((epoch-1) * len(train_loader)),l]))
-        torch.save({
-            'epoch': epoch,
-            'model': model.state_dict(),
-            'opt': optimizer.state_dict(),
-            'loss': loss,
-            'voc_dict': voc.__dict__,
-            'embedding': embedding.state_dict()
-        }, os.path.join(BASE_DIR, SAVE_PATH_ADEM, '{}_{}.tar'.format(epoch, 'epochs')))
+
+        if epoch % 10 == 0:
+            torch.save({
+                'iteration': epoch,
+                'model': model.state_dict(),
+                'opt': optimizer.state_dict(),
+                'loss': loss,
+                'voc_dict': voc.__dict__,
+                'embedding': embedding.state_dict()
+            }, os.path.join(BASE_DIR, SAVE_PATH_ADEM, '{}_{}.tar'.format(epoch, 'epochs')))
 
         test_epoch(model, test_loader, voc)

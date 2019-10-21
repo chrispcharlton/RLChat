@@ -2,7 +2,10 @@ from _requirements import *
 from seq2seq.vocab import PAD_token, EOS_token
 
 def indexesFromSentence(voc, sentence):
-    return [voc.word2index[word] for word in sentence.split(' ')] + [EOS_token]
+    try:
+        return [voc.word2index[word] for word in sentence.split(' ')] + [EOS_token]
+    except KeyError:
+        print(sentence)
 
 def zeroPadding(l, fillvalue=PAD_token):
     return list(itertools.zip_longest(*l, fillvalue=fillvalue))
