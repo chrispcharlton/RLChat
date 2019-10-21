@@ -2,14 +2,12 @@ from _requirements import *
 from seq2seq.models import EncoderRNN, LuongAttnDecoderRNN
 from seq2seq.vocab import Voc
 from _config import *
-
 from constants import *
 
 def load_latest_state_dict(savepath):
     try:
         saves = os.listdir(savepath)
     except FileNotFoundError:
-        # savepath = os.path.join("C:\\Users\\Christopher\\PycharmProjects\\RLChat", savepath)
         savepath = os.path.join(BASE_DIR, savepath)
         saves = os.listdir(savepath)
     max_save = saves[0]

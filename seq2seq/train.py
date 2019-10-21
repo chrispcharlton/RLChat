@@ -9,7 +9,6 @@ from constants import *
 
 
 def train():
-
     save_dir = os.path.join("data", "save")
     data = AlexaDataset()
     voc = Voc.from_dataset(data)

@@ -104,7 +104,7 @@ def trainEpochs(model_name, voc, n_epochs, data_loader, encoder, decoder, encode
 
             # Run a training iteration with batch
             loss = train(input_variable, lengths, target_variable, mask, max_target_len, encoder,
-                         decoder, embedding, encoder_optimizer, decoder_optimizer, data_loader.batch_size, clip)
+                         decoder, embedding, encoder_optimizer, decoder_optimizer, len(input_variable), clip)
             print_loss += loss
 
             # Print progress
