@@ -1,7 +1,8 @@
 import argparse
 
-from constants import *
+from _requirements import *
 
+from constants import *
 
 
 if __name__ == '__main__':
@@ -21,6 +22,12 @@ if __name__ == '__main__':
     train_parser = subparser.add_parser('train')
     train_parser.add_argument(
         'model',
+        choices=['seq2seq', 'adem', 'rl', 'discriminator'],
+    )
+
+    chat_parser = subparser.add_parser('chat')
+    chat_parser.add_argument(
+        'model',
         choices=['seq2seq', 'adem', 'rl'],
     )
 
@@ -33,60 +40,81 @@ if __name__ == '__main__':
             train()
 
         elif args.model == 'adem':
-            from ADEM import *
-            from _requirements import *
-            from data.amazon.dataset import AlexaDataset
-            from _config import *
-            from ADEM.model import ADEM
-            from torch.utils.data import DataLoader
-            from seq2seq import loadAlexaData
+            from ADEM.train import train
 
-            N_EPOCHS = 5
-            BATCH_SIZE = 256
-            output_size = 5
+            train()
 
-            ##TODO: shuffle train/test between epochs as some words are exclusive between the pre-defined sets
-
-            voc, pairs = loadAlexaData()
-
-            train_data = AlexaDataset('train.json')
-            train_loader = DataLoader(train_data, batch_size=BATCH_SIZE, shuffle=True)
-
-            test_data = AlexaDataset('test_freq.json')
-            test_loader = DataLoader(test_data, batch_size=BATCH_SIZE)
-
-            embedding = nn.Embedding(voc.num_words, hidden_size)
-            model = ADEM(hidden_size, output_size, embedding).to(device)
-
-            optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
-            criterion = nn.CrossEntropyLoss()
-
-            print('Training...')
-            for epoch in range(1, N_EPOCHS + 1):
-                loss = train_epoch(epoch, model, optimizer, criterion, train_loader, voc)
-
-                torch.save({
-                    'iteration': epoch,
-                    'model': model.state_dict(),
-                    'opt': optimizer.state_dict(),
-                    'loss': loss,
-                    'voc_dict': voc.__dict__,
-                    'embedding': embedding.state_dict()
-                }, os.path.join(BASE_DIR, SAVE_PATH_ADEM, '{}_{}.tar'.format(epoch, 'epochs')))
-
-                test_epoch(model, test_loader, voc)
-
+        elif args.model == 'discriminator':
+            from Adversarial_Discriminator.train import train
+            train()
 
         elif args.model == "rl":
             from reinforcement_learning import train, chat
 
-            policy, env, total_rewards, dqn_losses = train(num_episodes=50)
+            num_episodes = 5000
+            chat_too = False
+            load_dir = os.path.join(BASE_DIR, SAVE_PATH_SEQ2SEQ)
+
+            policy, env, total_rewards, dqn_losses = train(load_dir=load_dir, num_episodes=num_episodes)
+
+            if chat_too:
+                chat(policy, env)
+
+    elif args.subparser_name == 'chat':
+        """ 
+            Temp. 
+            Needs Refactor. 
+        """
+        if args.model == "rl":
+            import os
+            import torch
+
+            from seq2seq.models import EncoderRNN, LuongAttnDecoderRNN
+            from seq2seq.vocab import Voc
+
+            from reinforcement_learning.environment import Env
+            from reinforcement_learning.model import RLGreedySearchDecoder
+            from reinforcement_learning import chat
+
+            attn_model = 'dot'
+            hidden_size = 500
+            encoder_n_layers = 2
+            decoder_n_layers = 2
+            dropout = 0.1
+            batch_size = 64
+
+            # User loader mod and load latest etc
+            latest = '120_checkpoint.tar'
+            loadFilename = os.path.join(BASE_DIR, SAVE_PATH_RL, latest)
+
+            checkpoint = torch.load(loadFilename, map_location=device)
+            encoder_sd = checkpoint['en']
+            decoder_sd = checkpoint['de']
+            embedding_sd = checkpoint['embedding']
+            voc = Voc(checkpoint['voc_dict']['name'])
+            voc.__dict__ = checkpoint['voc_dict']
+
+            print('Building encoder and decoder ...')
+            # Initialize word embeddings
+            embedding = nn.Embedding(voc.num_words, hidden_size)
+            if loadFilename:
+                embedding.load_state_dict(embedding_sd)
+            # Initialize encoder & decoder models
+            encoder = EncoderRNN(hidden_size, embedding, encoder_n_layers, dropout)
+            decoder = LuongAttnDecoderRNN(attn_model, embedding, hidden_size, voc.num_words, decoder_n_layers, dropout)
+            if loadFilename:
+                encoder.load_state_dict(encoder_sd)
+                decoder.load_state_dict(decoder_sd)
+            # Use appropriate device
+            encoder = encoder.to(device)
+            decoder = decoder.to(device)
+            print('Models built and ready to go!')
+
+            encoder.eval()
+            decoder.eval()
+
+            policy = RLGreedySearchDecoder(encoder, decoder, voc)
+            env = Env(voc)
 
             # evaluate trained model
             chat(policy, env)
-
-
-
-
-
-
