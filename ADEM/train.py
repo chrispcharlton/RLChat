@@ -86,7 +86,7 @@ def train(epochs=50):
     criterion = nn.CrossEntropyLoss()
 
     log = open(os.path.join(BASE_DIR, SAVE_PATH_ADEM, 'adem_training.csv'.format('epochs')), 'a')
-    log.write('batch,loss')
+    log.write('batch,loss\n')
 
     print('Training...')
 
@@ -94,8 +94,8 @@ def train(epochs=50):
     for epoch in range(1, epochs + 1):
         loss = train_epoch(epoch, model, optimizer, criterion, train_loader, voc)
         for i, l in enumerate(loss):
-            log.write(','.join([i+((epoch-1) * len(train_loader)),l]))
-
+            log.write(','.join([str(i+((epoch-1) * len(train_loader))),str(l)]))
+            log.write('\n')
         if epoch % 10 == 0:
             torch.save({
                 'iteration': epoch,
