@@ -1,13 +1,8 @@
-import os
 import argparse
-
 
 from _requirements import *
 
 from constants import *
-
-
-
 
 
 if __name__ == '__main__':
@@ -48,24 +43,27 @@ if __name__ == '__main__':
             from ADEM.train import train
             train()
 
-
         elif args.model == 'discriminator':
             from Adversarial_Discriminator.train import train
             train()
 
-
         elif args.model == "rl":
             from reinforcement_learning import train, chat
 
-            load_dir = os.path.join(BASE_DIR, 'data/save/cb_model/Alexa/2-2_500')
-            policy, env, total_rewards, dqn_losses = train(load_dir=load_dir, num_episodes=120)
+            num_episodes = 5000
+            chat_too = False
+            load_dir = os.path.join(BASE_DIR, SAVE_PATH_SEQ2SEQ)
 
-            # evaluate trained model
-            chat(policy, env)
+            policy, env, total_rewards, dqn_losses = train(load_dir=load_dir, num_episodes=num_episodes)
 
-
+            if chat_too:
+                chat(policy, env)
 
     elif args.subparser_name == 'chat':
+        """ 
+            Temp. 
+            Needs Refactor. 
+        """
         if args.model == "rl":
             import os
             import torch
@@ -84,7 +82,9 @@ if __name__ == '__main__':
             dropout = 0.1
             batch_size = 64
 
-            loadFilename = os.path.join(BASE_DIR, 'data/save', 'rl_model/DQNseq2seq/30_checkpoint.tar')
+            # User loader mod and load latest etc
+            latest = '120_checkpoint.tar'
+            loadFilename = os.path.join(BASE_DIR, SAVE_PATH_RL, latest)
 
             checkpoint = torch.load(loadFilename, map_location=device)
             encoder_sd = checkpoint['en']

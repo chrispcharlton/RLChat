@@ -181,7 +181,7 @@ def train(load_dir=SAVE_PATH, save_dir=SAVE_PATH_RL, num_episodes=50, env=None):
     episode, encoder, decoder, encoder_optimizer, decoder_optimizer, voc = loadModel(directory=load_dir)
     policy = RLGreedySearchDecoder(encoder, decoder, voc)
     embedding = nn.Embedding(voc.num_words, hidden_size)
-    qnet = DQN(hidden_size, embedding)
+    qnet = DQN(hidden_size, embedding).to(device)
     qnet_optimizer = torch.optim.Adam(qnet.parameters(), lr=learning_rate)
     memory = ReplayMemory(1000)
     env = env if env else Env(voc)

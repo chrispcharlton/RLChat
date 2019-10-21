@@ -3,7 +3,8 @@ from seq2seq.models import EncoderRNN, LuongAttnDecoderRNN
 from seq2seq.prepareTrainData import batch2TrainData
 from seq2seq.processText import loadLines, loadConversations, extractSentencePairs, printLines, trimRareWords
 from seq2seq.trainingMethods import trainIters
-from seq2seq.vocab import loadPrepareData, loadAlexaData
+from seq2seq.vocab import loadPrepareData, loadAlexaData, Voc
+from data.amazon.dataset import AlexaDataset
 
 from constants import *
 
@@ -55,7 +56,13 @@ def train():
     # save_dir = os.path.join(BASE_DIR, "data", "amazon", "models")
     save_dir = os.path.join(BASE_DIR, "data", "save")
     corpus_name = "Alexa"
-    voc, pairs = loadAlexaData()
+    # voc, pairs = loadAlexaData()
+    # _, pairs = loadAlexaData()
+
+    dataset = AlexaDataset(rare_word_threshold=0)
+    pairs = dataset.data
+
+    voc = Voc.from_dataset(dataset)
 
     # train_data = AlexaDataset('train.json')
 
@@ -154,9 +161,27 @@ def train():
 
     # Run training iterations
     print("Starting Training!")
-    trainIters(model_name, voc, pairs, encoder, decoder, encoder_optimizer, decoder_optimizer,
-               embedding, encoder_n_layers, decoder_n_layers, save_dir, n_iteration, batch_size,
-               print_every, save_every, clip, corpus_name, loadFilename, checkpoint, hidden_size)
+    trainIters(model_name,
+               voc,
+               pairs,
+               encoder,
+               decoder,
+               encoder_optimizer,
+               decoder_optimizer,
+               embedding,
+               encoder_n_layers,
+               decoder_n_layers,
+               save_dir,
+               n_iteration,
+               batch_size,
+               print_every,
+               save_every,
+               clip,
+               corpus_name,
+               loadFilename,
+               checkpoint,
+               hidden_size
+               )
 
 
 if __name__ == '__main__':

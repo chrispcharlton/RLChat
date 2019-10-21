@@ -64,7 +64,7 @@ def test_epoch(model, data_loader, voc):
 
 
 
-def train(epochs=5):
+def train(epochs=50):
 
 
     BATCH_SIZE = 256
@@ -93,13 +93,14 @@ def train(epochs=5):
     for epoch in range(1, epochs + 1):
         loss = train_epoch(epoch, model, optimizer, criterion, train_loader, voc)
 
-        torch.save({
-            'iteration': epoch,
-            'model': model.state_dict(),
-            'opt': optimizer.state_dict(),
-            'loss': loss,
-            'voc_dict': voc.__dict__,
-            'embedding': embedding.state_dict()
-        }, os.path.join(BASE_DIR, SAVE_PATH_ADEM, '{}_{}.tar'.format(epoch, 'epochs')))
+        if epoch % 10 == 0:
+            torch.save({
+                'iteration': epoch,
+                'model': model.state_dict(),
+                'opt': optimizer.state_dict(),
+                'loss': loss,
+                'voc_dict': voc.__dict__,
+                'embedding': embedding.state_dict()
+            }, os.path.join(BASE_DIR, SAVE_PATH_ADEM, '{}_{}.tar'.format(epoch, 'epochs')))
 
         test_epoch(model, test_loader, voc)
