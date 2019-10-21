@@ -32,13 +32,9 @@ if __name__ == '__main__':
             train()
 
         elif args.model == 'adem':
-            from ADEM import train
+            from ADEM.train import train
             train()
 
         elif args.model == "rl":
-            from reinforcement_learning import train, chat
-
+            from reinforcement_learning.train import train
             policy, env, total_rewards, dqn_losses = train(num_episodes=50)
-
-            # evaluate trained model
-            chat(policy, env)
