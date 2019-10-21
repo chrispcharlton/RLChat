@@ -41,6 +41,7 @@ if __name__ == '__main__':
 
         elif args.model == 'adem':
             from ADEM.train import train
+
             train()
 
         elif args.model == 'discriminator':
@@ -117,4 +118,3 @@ if __name__ == '__main__':
 
             # evaluate trained model
             chat(policy, env)
-

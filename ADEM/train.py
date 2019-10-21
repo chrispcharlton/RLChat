@@ -32,19 +32,19 @@ def prepare_batch(batch, voc):
 
 
 def train_epoch(epoch, model, optimizer, criterion, data_loader, voc):
-    total_loss = 0
+    total_loss = []
     for i, batch in enumerate(data_loader, 1):
         seq, target = prepare_batch(batch, voc)
         output = model(seq)
         loss = criterion(output, target)
-        total_loss += loss.item()
+        total_loss.append(loss.item())
         model.zero_grad()
         loss.backward()
         optimizer.step()
 
         if i % 10 == 0:
             print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.2f}'.format(epoch, i * len(batch[0]), len(data_loader.dataset),
-                                        100. * i * len(batch[0]) / len(data_loader.dataset), total_loss / i * len(batch)))
+                                        100. * i * len(batch[0]) / len(data_loader.dataset), sum(total_loss) / i * len(batch)))
     return total_loss
 
 def test_epoch(model, data_loader, voc):
@@ -60,8 +60,6 @@ def test_epoch(model, data_loader, voc):
 
     print('\nTest set: Accuracy: {}/{} ({:.0f}%)\n'.format(
         correct, train_data_size, 100. * correct / train_data_size))
-
-
 
 
 def train(epochs=50):
@@ -87,11 +85,16 @@ def train(epochs=50):
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
     criterion = nn.CrossEntropyLoss()
 
+    log = open(os.path.join(BASE_DIR, SAVE_PATH_ADEM, 'adem_training.csv'.format('epochs')), 'a')
+    log.write('batch,loss')
+
     print('Training...')
 
 
     for epoch in range(1, epochs + 1):
         loss = train_epoch(epoch, model, optimizer, criterion, train_loader, voc)
+        for i, l in enumerate(loss):
+            log.write(','.join([i+((epoch-1) * len(train_loader)),l]))
 
         if epoch % 10 == 0:
             torch.save({
