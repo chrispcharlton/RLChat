@@ -31,10 +31,12 @@ def pad_with_zeroes(seq):
 
     return state_tensor
 
+
 class Env(object):
-    def __init__(self, voc, state_length=state_length):
+    def __init__(self, voc, dataset, state_length=state_length):
         print('Initialising Environment...')
         self.voc = voc
+        self.dataset = dataset
         self.state_length = state_length
         self.reset()
         self.adem = loadADEM()
@@ -52,7 +54,7 @@ class Env(object):
         self._state.append(tensor)
 
     def reset(self, input_sentence=None):
-        input_sentence = " ".join(['hello']) if input_sentence is None else input_sentence
+        input_sentence = self.dataset.random_opening_line() if input_sentence is None else input_sentence
         self._state = [self.sentence2tensor(input_sentence)]
         self.n_turns = 1
 
@@ -61,7 +63,6 @@ class Env(object):
         # words -> indexes
         indexes_batch = [indexesFromSentence(self.voc, sentence)]
         # Transpose dimensions of batch to match models' expectations
-        # seq = torch.LongTensor(indexes_batch, device=device) #.transpose(0, 1)
         seq = torch.tensor(indexes_batch, device=device, dtype=torch.long)
         # Use appropriate device
         seq = seq.to(device)
@@ -88,7 +89,6 @@ class Env(object):
     def calculate_reward(self, next_state):
         # TODO: reward should probably be a vector of whole sentence, with reward for each token
         return 0.5*(float(self.adem.predict(next_state).item() / 4)  + (1-float(self.AD(next_state)[1])^2))
-
 
     def is_done(self):
         return (len(set(self._state)) != len(self._state)) or (self.n_turns >= max_turns_per_episode)

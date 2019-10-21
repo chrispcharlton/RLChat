@@ -6,7 +6,7 @@ from reinforcement_learning.environment import Env
 from reinforcement_learning.model import RLGreedySearchDecoder
 from collections import namedtuple
 from numpy import mean
-
+from data.amazon.dataset import AlexaDataset
 from constants import *
 
 Transition = namedtuple('Transition',
@@ -43,67 +43,6 @@ def seqs_to_padded_tensors(seqs, max_length=None):
             # state_tensor[idx, :seq_len] = torch.LongTensor(seq)
             state_tensor[idx, :seq_len] = torch.tensor(seq, device=device, dtype=torch.long)
     return state_tensor, lengths
-
-
-def optimize_batch(searcher, memory, en_optimizer, de_optimizer):
-
-    ## TODO: clean up this function
-
-    if len(memory) < BATCH_SIZE:
-        return None
-
-    transitions = memory.sample(BATCH_SIZE)
-    # Transpose the batch (see https://stackoverflow.com/a/19343/3343043 for
-    # detailed explanation). This converts batch-array of Transitions
-    # to Transition of batch-arrays.
-    batch = Transition(*zip(*transitions))
-
-    # Convert batch to stacked tensors to input into model and sort by state length
-    states, state_lengths = seqs_to_padded_tensors([s[0] for s in batch.state])
-    next_states, next_state_lengths = seqs_to_padded_tensors([s[0] for s in batch.next_state])
-
-    state_lengths, perm_idx = state_lengths.sort(0, descending=True)
-    states = states[perm_idx]
-    next_states = next_states[perm_idx]
-
-    reward_batch = torch.cat(batch.reward)
-    reward_batch = reward_batch[perm_idx]
-
-    # Compute a mask of non-final states. Mask is used to allocate 0 future reward to terminal states.
-    # (a final state would've been the one after which simulation ended)
-    non_final_mask = torch.tensor(tuple(map(lambda s: s is not None, next_states)), device=device, dtype=torch.bool)
-    non_final_next_states = torch.stack([s for s in next_states if s is not None])
-
-    # Compute Q(s_t, a) - the model computes Q(s_t).
-    ## TODO: check that final score (output probability) for action is correct. Maybe should be using average for whole action?
-    state_action_values = torch.stack([torch.tensor([t[-1]], requires_grad=True, device=device) for t in searcher(states)[1]], dim=1)
-
-    # Compute V(s_{t+1}) for all next states.
-    # Expected values of actions for non_final_next_states are computed based
-    # on the "older" target_net
-    # This is merged based on the mask, such that we'll have either the expected
-    # state value or 0 in case the state was final.
-    next_state_values = torch.zeros(BATCH_SIZE, 1, device=device)
-    next_state_values[non_final_mask] = torch.stack([torch.tensor([t[-1]], requires_grad=True, device=device) for t in searcher(non_final_next_states)[1]])
-
-    # Compute the expected Q values for next states
-    expected_state_action_values = (next_state_values * GAMMA) + reward_batch
-
-    # Compute Huber loss
-    loss = F.smooth_l1_loss(state_action_values, expected_state_action_values)
-
-    # Optimize the model
-    en_optimizer.zero_grad()
-    de_optimizer.zero_grad()
-    loss.backward()
-    # for param in searcher.encoder.parameters():
-    #     param.grad.data.clamp_(-1, 1)
-    # for param in searcher.decoder.parameters():
-    #     param.grad.data.clamp_(-1, 1)
-    en_optimizer.step()
-    de_optimizer.step()
-
-    return loss
 
 
 def optimise_qnet(state_action_values, expected_state_action_values, qnet, qnet_optimizer, retain_graph=True):
@@ -184,7 +123,7 @@ def train(load_dir=SAVE_PATH, save_dir=SAVE_PATH_RL, num_episodes=50, env=None):
     qnet = DQN(hidden_size, embedding)
     qnet_optimizer = torch.optim.Adam(qnet.parameters(), lr=learning_rate)
     memory = ReplayMemory(1000)
-    env = env if env else Env(voc)
+    env = env if env else Env(voc, AlexaDataset())
 
     # set episode number to 0 if starting from warm-started model. If loading rl-trained model continue from current number of eps
     if "/rl_models/" not in load_dir:
