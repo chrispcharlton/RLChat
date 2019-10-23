@@ -1,5 +1,5 @@
 from _requirements import *
-from seq2seq.vocab import MAX_LENGTH, SOS_token
+from seq2seq.vocab import MAX_LENGTH, SOS_token, EOS_token
 
 class RLGreedySearchDecoder(nn.Module):
 
@@ -32,12 +32,13 @@ class RLGreedySearchDecoder(nn.Module):
             else:
                 decoder_input = torch.randint(decoder_output.size(dim=1), (1, 1))
                 decoder_scores = decoder_output.select(1, decoder_input)
-
             # Record token and score
             all_tokens = torch.cat((all_tokens, decoder_input), dim=0)
             all_scores = torch.cat((all_scores, decoder_scores), dim=0)
             # Prepare current token to be next decoder input (add a dimension)
             decoder_input = torch.unsqueeze(decoder_input, 0)
+            if decoder_input.item() == EOS_token:
+                break
         # Return collections of word tokens and scores
         return all_tokens.view(batch_size, -1), all_scores.view(batch_size, -1)
 

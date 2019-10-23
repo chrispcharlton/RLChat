@@ -1,7 +1,9 @@
 from _requirements import *
 from seq2seq.vocab import PAD_token, EOS_token
+from data.amazon.dataset import standardise_sentence
 
 def indexesFromSentence(voc, sentence):
+    sentence = standardise_sentence(sentence)
     try:
         return [voc.word2index[word] for word in sentence.split(' ')] + [EOS_token]
     except KeyError:

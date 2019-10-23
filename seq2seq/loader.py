@@ -1,7 +1,7 @@
 from _requirements import *
 from seq2seq.models import EncoderRNN, LuongAttnDecoderRNN
 from seq2seq.vocab import Voc
-from _config import *
+from seq2seq._config import *
 
 from constants import *
 

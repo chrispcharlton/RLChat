@@ -36,12 +36,12 @@ class Env(object):
         print('Initialising Environment...')
         self.voc = voc
         self.state_length = state_length
-        self.reset()
+        self.dataset = dataset
         self.adem = loadADEM()
         self.AD = loadAdversarial_Discriminator()
         self.n_turns = 1
         self.user_sim_model = None
-        self.dataset = dataset
+        self.reset()
 
     @property
     def state(self):

@@ -3,7 +3,7 @@ from _config import *
 from seq2seq.loader import loadModel, saveStateDict
 from reinforcement_learning.qnet import DQN
 from reinforcement_learning._config import save_every, hidden_size, learning_rate, BATCH_SIZE, GAMMA, retrain_discriminator_every
-from reinforcement_learning.environment import Env
+from reinforcement_learning.environment import Env, chat
 from reinforcement_learning.model import RLGreedySearchDecoder
 from Adversarial_Discriminator.train import trainAdversarialDiscriminatorOnLatestSeq2Seq
 from collections import namedtuple
@@ -135,7 +135,7 @@ def train(load_dir=SAVE_PATH, save_dir=SAVE_PATH_RL, num_episodes=50, env=None):
     total_rewards = []
     dqn_losses = []
 
-    ad_data = DataLoader(env.dataset, batch_size=batch_size, shuffle=True)
+    ad_data = DataLoader(env.dataset, batch_size=BATCH_SIZE, shuffle=True)
 
     # RL training loop
     print("Training for {} episodes...".format(num_episodes))
@@ -192,5 +192,7 @@ def train(load_dir=SAVE_PATH, save_dir=SAVE_PATH_RL, num_episodes=50, env=None):
 
     return policy, env, total_rewards, dqn_losses
 
+
 if __name__ == '__main__':
-    train(num_episodes=30)
+    policy, env, total_rewards, dqn_losses = train(num_episodes=30)
+    chat(policy, env)
