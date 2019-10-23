@@ -51,7 +51,7 @@ if __name__ == '__main__':
         elif args.model == "rl":
             from reinforcement_learning import train, chat
 
-            num_episodes = 5000
+            num_episodes = 10000
             chat_too = False
             load_dir = os.path.join(BASE_DIR, SAVE_PATH_SEQ2SEQ)
 
