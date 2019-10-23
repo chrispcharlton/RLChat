@@ -1,6 +1,7 @@
 from _requirements import *
 from _config import *
 from seq2seq.loader import loadModel, saveStateDict
+from seq2seq.vocab import Voc
 from reinforcement_learning.qnet import DQN
 from reinforcement_learning._config import save_every, hidden_size, learning_rate, BATCH_SIZE, GAMMA, retrain_discriminator_every
 from reinforcement_learning.environment import Env, chat
@@ -121,6 +122,7 @@ def optimize_batch_q(policy, qnet, qnet_optimizer, memory, en_optimizer, de_opti
 
 def train(load_dir=SAVE_PATH, save_dir=SAVE_PATH_RL, num_episodes=50, env=None):
     episode, encoder, decoder, encoder_optimizer, decoder_optimizer, voc = loadModel(directory=load_dir)
+    voc = Voc.from_dataset(AlexaDataset())
     policy = RLGreedySearchDecoder(encoder, decoder, voc)
     embedding = nn.Embedding(voc.num_words, hidden_size)
     qnet = DQN(hidden_size, embedding).to(device)

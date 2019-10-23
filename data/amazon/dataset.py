@@ -11,7 +11,9 @@ numeric_ratings = {'Not Good':1, 'Passable':2, 'Good':3, 'Excellent':4}
 
 
 def standardise_sentence(sentence):
-    sentence = sentence.replace(', ',' , ').replace('.',' .').replace('?',' ?').replace('!',' !').replace('  ',' ')
+    sentence = sentence.replace(',',' , ').replace('.',' . ').replace('?',' ? ').replace('!',' ! ').replace('(',' ( ').replace(')',' ) ')
+    while '  ' in sentence:
+        sentence = sentence.replace('  ',' ')
     return sentence.lower()
 
 def load_alexa_pairs(fname='train.json', dir='./data/amazon'):
