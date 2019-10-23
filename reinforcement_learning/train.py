@@ -120,7 +120,7 @@ def optimize_batch_q(policy, qnet, qnet_optimizer, memory, en_optimizer, de_opti
     return dqn_loss, policy_loss
 
 
-def train(load_dir=SAVE_PATH, save_dir=SAVE_PATH_RL, num_episodes=50, env=None):
+def train(load_dir=SAVE_PATH, save_dir=SAVE_PATH_RL, num_episodes=10000, env=None):
     episode, encoder, decoder, encoder_optimizer, decoder_optimizer, voc = loadModel(directory=load_dir)
     voc = Voc.from_dataset(AlexaDataset())
     policy = RLGreedySearchDecoder(encoder, decoder, voc)
@@ -194,6 +194,7 @@ def train(load_dir=SAVE_PATH, save_dir=SAVE_PATH_RL, num_episodes=50, env=None):
         # if i_episode % TARGET_UPDATE == 0:
         #     target_net.load_state_dict(policy_net.state_dict())
 
+    print('Training Complete!')
     return policy, env, total_rewards, dqn_losses
 
 
