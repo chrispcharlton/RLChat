@@ -1,13 +1,15 @@
 from _requirements import *
 from seq2seq.loader import loadModel, saveStateDict
 from reinforcement_learning.qnet import DQN
-from reinforcement_learning._config import save_every, hidden_size, learning_rate, BATCH_SIZE, GAMMA
+from reinforcement_learning._config import save_every, hidden_size, learning_rate, BATCH_SIZE, GAMMA, retrain_discriminator_every
 from reinforcement_learning.environment import Env
 from reinforcement_learning.model import RLGreedySearchDecoder
+from Adversarial_Discriminator.train import trainAdversarialDiscriminatorOnLatestSeq2Seq
 from collections import namedtuple
+from _config import *
 from numpy import mean
-
 from constants import *
+from data.amazon.dataset import AlexaDataset
 
 Transition = namedtuple('Transition',
                         ('state', 'action', 'next_state', 'reward', 'done', 'prob'))
@@ -123,7 +125,7 @@ def train(load_dir=SAVE_PATH, save_dir=SAVE_PATH_RL, num_episodes=50, env=None):
     qnet = DQN(hidden_size, embedding).to(device)
     qnet_optimizer = torch.optim.Adam(qnet.parameters(), lr=learning_rate)
     memory = ReplayMemory(1000)
-    env = env if env else Env(voc)
+    env = env if env else Env(voc, AlexaDataset())
 
     # set episode number to 0 if starting from warm-started model. If loading rl-trained model continue from current number of eps
     if "/rl_models/" not in load_dir:
@@ -166,6 +168,9 @@ def train(load_dir=SAVE_PATH, save_dir=SAVE_PATH_RL, num_episodes=50, env=None):
         # only save if optimisation has been done
         if i_episode % save_every == 0 and policy_loss:
             saveStateDict(episode + i_episode, encoder, decoder, encoder_optimizer, decoder_optimizer, policy_loss, voc, encoder.embedding, save_dir)
+
+        if i_episode % retrain_discriminator_every == 0:
+            trainAdversarialDiscriminatorOnLatestSeq2Seq(env.AD, policy, voc, )
 
         # TODO: implement target/policy net (DDQN)?
         # if i_episode % TARGET_UPDATE == 0:

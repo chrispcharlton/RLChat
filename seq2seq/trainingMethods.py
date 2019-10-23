@@ -4,7 +4,7 @@ from seq2seq.prepareTrainData import batch2TrainData, indexesFromSentence
 from seq2seq.vocab import *
 from collections import namedtuple
 
-TEACHER_FORCING_RATIO = 1.0
+TEACHER_FORCING_RATIO = 0.5
 
 def maskNLLLoss(inp, target, mask):
     nTotal = mask.sum()

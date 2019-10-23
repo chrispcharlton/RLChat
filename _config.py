@@ -9,7 +9,8 @@ batch_size = 256 if device == 'cuda' else 64
 learning_rate = 0.0001
 decoder_learning_ratio = 5.0
 
-save_every = 10
+save_every = 200
+
 
 # Default word tokens
 PAD_token = 0  # Used for padding short sentences

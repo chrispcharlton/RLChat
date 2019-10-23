@@ -25,10 +25,10 @@ def prepare_batch(batch, voc):
     lengths, perm_idx = lengths.sort(0, descending=True)
     seq_tensor = seq_tensor[perm_idx]
 
-    target = batch.rating
+    target = batch.rating.type(torch.float) / 4
     target = target[perm_idx].to(device)
 
-    return seq_tensor, target
+    return seq_tensor, target.unsqueeze(1)
 
 
 def train_epoch(epoch, model, optimizer, criterion, data_loader, voc):
@@ -42,10 +42,11 @@ def train_epoch(epoch, model, optimizer, criterion, data_loader, voc):
         loss.backward()
         optimizer.step()
 
-        if i % 10 == 0:
+        if i % 5 == 0:
             print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.2f}'.format(epoch, i * len(batch[0]), len(data_loader.dataset),
                                         100. * i * len(batch[0]) / len(data_loader.dataset), sum(total_loss) / i * len(batch)))
     return total_loss
+
 
 def test_epoch(model, data_loader, voc):
 
@@ -62,17 +63,16 @@ def test_epoch(model, data_loader, voc):
         correct, train_data_size, 100. * correct / train_data_size))
 
 
-def train(epochs=50):
-
-
+def train(epochs=2000):
     BATCH_SIZE = 256
-    output_size = 5
+    output_size = 1
 
     ##TODO: shuffle train/test between epochs as some words are exclusive between the pre-defined sets
 
     voc = Voc.from_dataset(AlexaDataset(rare_word_threshold=0))
 
-    train_data = AlexaDataset('train.json', rare_word_threshold=3)
+    train_data = AlexaDataset(rare_word_threshold=0)
+
     train_loader = DataLoader(train_data, batch_size=BATCH_SIZE, shuffle=True)
 
     test_data = AlexaDataset('test_freq.json', rare_word_threshold=3)
@@ -83,7 +83,8 @@ def train(epochs=50):
     model = ADEM(hidden_size, output_size, embedding).to(device)
 
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
-    criterion = nn.CrossEntropyLoss()
+    # criterion = nn.CrossEntropyLoss()
+    criterion = nn.MSELoss()
 
     log = open(os.path.join(BASE_DIR, SAVE_PATH_ADEM, 'adem_training.csv'.format('epochs')), 'a')
     log.write('batch,loss\n')
@@ -96,7 +97,7 @@ def train(epochs=50):
         for i, l in enumerate(loss):
             log.write(','.join([str(i+((epoch-1) * len(train_loader))),str(l)]))
             log.write('\n')
-        if epoch % 10 == 0:
+        if epoch % save_every == 0:
             torch.save({
                 'iteration': epoch,
                 'model': model.state_dict(),
@@ -107,3 +108,6 @@ def train(epochs=50):
             }, os.path.join(BASE_DIR, SAVE_PATH_ADEM, '{}_{}.tar'.format(epoch, 'epochs')))
 
         test_epoch(model, test_loader, voc)
+
+if __name__ == '__main__':
+    train()
