@@ -133,8 +133,7 @@ def test_AdversarialDiscriminatorOnLatestSeq2Seq(model, searcher, data_loader, v
         pred = model.predict(compiledSequence)
         correctlyBot += pred.eq(target.data.view_as(pred)).cpu().sum()
         # print('test batch {}\n'.format(i))
-        print('\nTest set accuracy: correctly guess human: {}/{} ({:.0f}%) ; correctly guess bot: {}/{} ({:.0f}%)'.format(
-            correctlyHuman, test_data_size, (100. * correctlyHuman / test_data_size), correctlyBot, test_data_size, 100. * correctlyBot / test_data_size))
+        print('\nTest set accuracy: correctly guess human: {}/{} ({:.0f}%) ; correctly guess bot: {}/{} ({:.0f}%)'.format(correctlyHuman, test_data_size, (100.0 * correctlyHuman / test_data_size), correctlyBot, test_data_size, 100.0 * correctlyBot / test_data_size))
 
 
 def train():
