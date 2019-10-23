@@ -1,8 +1,9 @@
 from _requirements import *
 from _config import *
 from seq2seq.loader import loadModel, saveStateDict
+from seq2seq.vocab import Voc
 from reinforcement_learning.qnet import DQN
-from reinforcement_learning._config import save_every, hidden_size, learning_rate, BATCH_SIZE, GAMMA, retrain_discriminator_every
+from reinforcement_learning._config import save_every, hidden_size, learning_rate, BATCH_SIZE, GAMMA, retrain_discriminator_every, print_every
 from reinforcement_learning.environment import Env, chat
 from reinforcement_learning.model import RLGreedySearchDecoder
 from Adversarial_Discriminator.train import trainAdversarialDiscriminatorOnLatestSeq2Seq
@@ -119,8 +120,9 @@ def optimize_batch_q(policy, qnet, qnet_optimizer, memory, en_optimizer, de_opti
     return dqn_loss, policy_loss
 
 
-def train(load_dir=SAVE_PATH, save_dir=SAVE_PATH_RL, num_episodes=50, env=None):
+def train(load_dir=SAVE_PATH, save_dir=SAVE_PATH_RL, num_episodes=10000, env=None):
     episode, encoder, decoder, encoder_optimizer, decoder_optimizer, voc = loadModel(directory=load_dir)
+    voc = Voc.from_dataset(AlexaDataset())
     policy = RLGreedySearchDecoder(encoder, decoder, voc)
     embedding = nn.Embedding(voc.num_words, hidden_size)
     qnet = DQN(hidden_size, embedding).to(device)
@@ -166,7 +168,8 @@ def train(load_dir=SAVE_PATH, save_dir=SAVE_PATH_RL, num_episodes=50, env=None):
         total_rewards.append(ep_reward)
         dqn_losses.append(ep_q_loss)
 
-        print("Episode {} completed, lasted {} turns -- Total Reward : {} -- Average DQN Loss : {}".format(i_episode, env.n_turns, ep_reward, ep_q_loss))
+        if i_episode % print_every == 0:
+            print("Episode {} completed, lasted {} turns -- Total Reward : {} -- Average DQN Loss : {}".format(i_episode, env.n_turns, ep_reward, ep_q_loss))
 
         # only save if optimisation has been done
         save_freq = 500# temp
@@ -174,9 +177,10 @@ def train(load_dir=SAVE_PATH, save_dir=SAVE_PATH_RL, num_episodes=50, env=None):
             saveStateDict(episode + i_episode, encoder, decoder, encoder_optimizer, decoder_optimizer, policy_loss, voc, encoder.embedding, save_dir)
 
         if i_episode % retrain_discriminator_every == 0:
+            print('Updating Discriminator...')
             optimizer = torch.optim.Adam(env.AD.parameters(), lr=learning_rate)
             criterion = nn.CrossEntropyLoss()
-            for i in range(5):
+            for i in range(1):
                 loss = trainAdversarialDiscriminatorOnLatestSeq2Seq(env.AD, policy, voc, ad_data, criterion, optimizer, embedding, 'data/save/Adversarial_Discriminator/', i)
             torch.save({
                 'iteration': i_episode,
@@ -191,6 +195,7 @@ def train(load_dir=SAVE_PATH, save_dir=SAVE_PATH_RL, num_episodes=50, env=None):
         # if i_episode % TARGET_UPDATE == 0:
         #     target_net.load_state_dict(policy_net.state_dict())
 
+    print('Training Complete!')
     return policy, env, total_rewards, dqn_losses
 
 

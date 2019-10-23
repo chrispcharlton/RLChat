@@ -88,7 +88,7 @@ def trainAdversarialDiscriminatorOnLatestSeq2Seq(
         optimizer.step()
         # print('batch {}\n'.format(i))
 
-        if i % 10 == 0:
+        if i % 100 == 0:
             print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.2f}'.format(epoch, i * len(batch[0]), len(data_loader.dataset),
                                         100. * i * len(batch[0]) / len(data_loader.dataset), total_loss / i * len(batch)))
         # if(i % 100 == 0):
@@ -127,7 +127,7 @@ def test_AdversarialDiscriminatorOnLatestSeq2Seq(model, searcher, data_loader, v
         padded_input_sentence_tokens = [indexes + list(itertools.repeat(PAD_token, maxLength - len(indexes))) for indexes in input_sentence_tokens]
 
         input_batch = torch.tensor(padded_input_sentence_tokens, device=device, dtype=torch.long)
-        output_sentence_tokens, scores = searcher(input_batch, MAX_LENGTH)
+        output_sentence_tokens, scores = searcher(input_batch)
         compiledSequence = torch.cat([input_batch, output_sentence_tokens], dim=1).to(device)
         target[:] = 0
         pred = model.predict(compiledSequence)
@@ -188,3 +188,6 @@ def train():
             }, os.path.join(save_dir, '{}_{}.tar'.format(epoch, 'epochs')))
 
         test_AdversarialDiscriminatorOnLatestSeq2Seq(model, searcher, test_loader, voc)
+
+if __name__ == '__main__':
+    train()

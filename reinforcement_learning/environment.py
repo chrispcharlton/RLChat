@@ -87,10 +87,9 @@ class Env(object):
 
     def calculate_reward(self, next_state):
         # TODO: reward should probably be a vector of whole sentence, with reward for each token
-        # return 0.5*(float(self.adem.predict(next_state).item() / 4)  + (1-float(self.AD(next_state)[1])^2))
-
-        # return 0.5 * (float(self.adem.predict(next_state).item() / 4) + (1 - float(self.AD.predict(next_state).item()) ** 2))
-        return 0.5 * (float(self.adem.predict(next_state).item() / 4))
+        return 0.5 * (float(self.adem.predict(next_state).item() / 4) + (1 - float(self.AD.predict(next_state).item()) ** 2)) # Both
+        # return (1 - float(self.AD.predict(next_state).item()) ** 2) # Discriminator only
+        # return (float(self.adem.predict(next_state).item() / 4)) # ADEM only
 
     def is_done(self):
         return (len(set(self._state)) != len(self._state)) or (self.n_turns >= max_turns_per_episode)
