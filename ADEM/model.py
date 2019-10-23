@@ -7,7 +7,7 @@ from _config import *
 from constants import *
 
 
-def loadADEM(hidden_size=hidden_size, output_size=1, n_layers=1, dropout=0, path=SAVE_PATH_ADEM):
+def loadADEM(hidden_size=hidden_size, output_size=5, n_layers=1, dropout=0, path=SAVE_PATH_ADEM):
     state_dict = load_latest_state_dict(path)
     voc = Voc('placeholder_name')
     voc.__dict__ = state_dict['voc_dict']
