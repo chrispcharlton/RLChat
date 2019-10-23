@@ -88,7 +88,7 @@ def trainAdversarialDiscriminatorOnLatestSeq2Seq(
         optimizer.step()
         # print('batch {}\n'.format(i))
 
-        if i % 10 == 0:
+        if i % 100 == 0:
             print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.2f}'.format(epoch, i * len(batch[0]), len(data_loader.dataset),
                                         100. * i * len(batch[0]) / len(data_loader.dataset), total_loss / i * len(batch)))
         # if(i % 100 == 0):
