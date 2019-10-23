@@ -225,7 +225,8 @@ def train(load_dir=SAVE_PATH, save_dir=SAVE_PATH_RL, num_episodes=50, env=None):
         print("Episode {} completed, lasted {} turns -- Total Reward : {} -- Average DQN Loss : {}".format(i_episode, env.n_turns, ep_reward, ep_q_loss))
 
         # only save if optimisation has been done
-        if i_episode % save_every == 0 and policy_loss:
+        save_freq = 500# temp
+        if i_episode % save_freq == 0 and policy_loss:
             saveStateDict(episode + i_episode, encoder, decoder, encoder_optimizer, decoder_optimizer, policy_loss, voc, encoder.embedding, save_dir)
 
         # TODO: implement target/policy net (DDQN)?

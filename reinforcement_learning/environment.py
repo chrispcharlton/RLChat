@@ -4,18 +4,19 @@ from ADEM import loadADEM
 from seq2seq import indexesFromSentence
 from reinforcement_learning._config import MAX_LENGTH, max_turns_per_episode, state_length
 
+from data.amazon.dataset import standardise_sentence
+
 
 def chat(policy, env):
-    input_sentence = ''
     env.reset()
     env._state = []
 
-    while(1):
+    while 1:
         try:
             input_sentence = input('> ')
             if input_sentence == 'q':
                 break
-            input_sentence = env.sentence2tensor(input_sentence)
+            input_sentence = env.sentence2tensor(standardise_sentence(input_sentence))
             env.update_state(input_sentence)
             response, tensor = policy.response(env.state)
             env.update_state(tensor)
