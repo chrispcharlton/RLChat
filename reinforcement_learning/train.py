@@ -1,4 +1,5 @@
 from _requirements import *
+from _config import *
 from seq2seq.loader import loadModel, saveStateDict
 from reinforcement_learning.qnet import DQN
 from reinforcement_learning._config import save_every, hidden_size, learning_rate, BATCH_SIZE, GAMMA, retrain_discriminator_every
@@ -6,10 +7,10 @@ from reinforcement_learning.environment import Env
 from reinforcement_learning.model import RLGreedySearchDecoder
 from Adversarial_Discriminator.train import trainAdversarialDiscriminatorOnLatestSeq2Seq
 from collections import namedtuple
-from _config import *
 from numpy import mean
 from constants import *
 from data.amazon.dataset import AlexaDataset
+from torch.utils.data import DataLoader
 
 Transition = namedtuple('Transition',
                         ('state', 'action', 'next_state', 'reward', 'done', 'prob'))
@@ -134,6 +135,8 @@ def train(load_dir=SAVE_PATH, save_dir=SAVE_PATH_RL, num_episodes=50, env=None):
     total_rewards = []
     dqn_losses = []
 
+    ad_data = DataLoader(env.dataset, batch_size=batch_size, shuffle=True)
+
     # RL training loop
     print("Training for {} episodes...".format(num_episodes))
 
@@ -170,7 +173,18 @@ def train(load_dir=SAVE_PATH, save_dir=SAVE_PATH_RL, num_episodes=50, env=None):
             saveStateDict(episode + i_episode, encoder, decoder, encoder_optimizer, decoder_optimizer, policy_loss, voc, encoder.embedding, save_dir)
 
         if i_episode % retrain_discriminator_every == 0:
-            trainAdversarialDiscriminatorOnLatestSeq2Seq(env.AD, policy, voc, )
+            optimizer = torch.optim.Adam(env.AD.parameters(), lr=learning_rate)
+            criterion = nn.CrossEntropyLoss()
+            for i in range(5):
+                loss = trainAdversarialDiscriminatorOnLatestSeq2Seq(env.AD, policy, voc, ad_data, criterion, optimizer, embedding, 'data/save/Adversarial_Discriminator/', i)
+            torch.save({
+                'iteration': i_episode,
+                'model': env.AD.state_dict(),
+                'opt': optimizer.state_dict(),
+                'loss': loss,
+                'voc_dict': voc.__dict__,
+                'embedding': embedding.state_dict()
+            }, os.path.join(save_dir, '{}_{}.tar'.format(i_episode, 'epochs')))
 
         # TODO: implement target/policy net (DDQN)?
         # if i_episode % TARGET_UPDATE == 0:
