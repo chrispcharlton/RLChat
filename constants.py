@@ -3,7 +3,7 @@ import os
 # allow set up own rel save paths
 BASE_DIR = os.path.dirname(__file__)
 
-SAVE_PATH = 'data/save/cb_model/cornell movie-dialogs corpus/2-2_500/'
+SAVE_PATH = 'data/save/cb_model/Alexa/2-2_500/'
 SAVE_PATH_RL = 'data/save/rl_model/DQNseq2seq/'
 SAVE_PATH_ADEM = 'data/save/adem_model/'
 SAVE_PATH_DISCRIMINATOR = 'data/save/Adversarial_Discriminator/'

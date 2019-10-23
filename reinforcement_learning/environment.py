@@ -4,7 +4,7 @@ from ADEM import loadADEM
 from seq2seq import indexesFromSentence
 from reinforcement_learning._config import MAX_LENGTH, max_turns_per_episode, state_length
 
-from data.amazon.dataset import standardise_sentence
+from data.amazon.dataset import standardise_sentence, AlexaDataset
 
 
 def chat(policy, env):
@@ -33,15 +33,16 @@ def pad_with_zeroes(seq):
     return state_tensor
 
 class Env(object):
-    def __init__(self, voc, state_length=state_length):
+    def __init__(self, voc, dataset, state_length=state_length):
         print('Initialising Environment...')
         self.voc = voc
         self.state_length = state_length
-        self.reset()
+        self.dataset = dataset
         self.adem = loadADEM()
         self.AD = loadAdversarial_Discriminator()
         self.n_turns = 1
         self.user_sim_model = None
+        self.reset()
 
     @property
     def state(self):
@@ -53,7 +54,7 @@ class Env(object):
         self._state.append(tensor)
 
     def reset(self, input_sentence=None):
-        input_sentence = " ".join(['hello']) if input_sentence is None else input_sentence
+        input_sentence = self.dataset.random_opening_line() if input_sentence is None else input_sentence
         self._state = [self.sentence2tensor(input_sentence)]
         self.n_turns = 1
 
@@ -61,8 +62,6 @@ class Env(object):
         ### Format input sentence as a batch
         # words -> indexes
         indexes_batch = [indexesFromSentence(self.voc, sentence)]
-        # Transpose dimensions of batch to match models' expectations
-        # seq = torch.LongTensor(indexes_batch, device=device) #.transpose(0, 1)
         seq = torch.tensor(indexes_batch, device=device, dtype=torch.long)
         # Use appropriate device
         seq = seq.to(device)

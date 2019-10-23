@@ -1,7 +1,7 @@
 from _requirements import *
 from seq2seq.models import EncoderRNN, LuongAttnDecoderRNN
 from seq2seq.vocab import Voc
-from _config import *
+from seq2seq._config import *
 
 from constants import *
 
@@ -17,6 +17,7 @@ def load_latest_state_dict(savepath):
     for save in saves:
         if int(save.split('_')[0]) > int(max_save.split('_')[0]):
             max_save = save
+    print(max_save)
     return torch.load(open(os.path.join(savepath, max_save), 'rb'), map_location=device)
 
 

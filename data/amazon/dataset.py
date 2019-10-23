@@ -7,7 +7,7 @@ import os
 
 
 Pair = namedtuple('Pair', ('utterance', 'response', 'rating', 'conversation_id', 'opening_line'))
-numeric_ratings = {'Poor':0, 'Not Good':1, 'Passable':2, 'Good':3, 'Excellent':4}
+numeric_ratings = {'Not Good':1, 'Passable':2, 'Good':3, 'Excellent':4}
 
 
 def standardise_sentence(sentence):
@@ -20,7 +20,7 @@ def load_alexa_pairs(fname='train.json', dir='./data/amazon'):
     for c_id, conversation in data.items():
         first = True
         for utterance, response in zip(conversation['content'][:-1],conversation['content'][1:]):
-            if response['turn_rating'] != '' and len(utterance['message'].split(' ')) < MAX_LENGTH and len(response['message'].split(' ')) < MAX_LENGTH:
+            if response['turn_rating'] not in ['', 'Poor'] and len(utterance['message'].split(' ')) < MAX_LENGTH and len(response['message'].split(' ')) < MAX_LENGTH:
                 pairs.append(Pair(utterance=standardise_sentence(utterance['message']),
                                   response=standardise_sentence(response['message']),
                                   rating=numeric_ratings[response['turn_rating']],
@@ -41,14 +41,13 @@ class AlexaDataset(Dataset):
             rare_word_threshold: Remove pairs which contain words that appear less than or equal to threshold
         """
         self.data = []
+        self.rare_word_threshold = rare_word_threshold
         if json is not None:
             self.add_pairs_from_json(json, dir)
         else:
             for f in [f for f in os.listdir(dir) if f.endswith('.json')]:
                 print("Added {} to dataset".format(f))
                 self.add_pairs_from_json(f, dir)
-        self._trim_rare_words(rare_word_threshold)
-        self.ids = list(set([p.conversation_id for p in self.data]))
 
     def __len__(self):
         return len(self.data)
@@ -64,8 +63,24 @@ class AlexaDataset(Dataset):
     def opening_lines(self):
         return [self.get_conversation(c)[0].utterance for c in self.conversation_ids]
 
-    def add_pairs_from_json(self, json, dir):
+    def balance_data(self):
+        min_obs = 10000000
+        for r in numeric_ratings.values():
+            obs = len([p for p in self.data if p.rating==r])
+            min_obs = obs if obs < min_obs else min_obs
+        new_data = []
+        for r in numeric_ratings.values():
+            r_data = [p for p in self.data if p.rating==r]
+            if len(r_data) >= min_obs:
+                r_data = r_data[:min_obs]
+                new_data += r_data
+        self.data = new_data
+        self.ids = list(set([p.conversation_id for p in self.data]))
+
+    def add_pairs_from_json(self, json, dir='./data/amazon'):
         self.data += load_alexa_pairs(json, dir)
+        self._trim_rare_words(self.rare_word_threshold)
+        self.ids = list(set([p.conversation_id for p in self.data]))
 
     def random_opening_line(self):
         return random.choice([p.utterance for p in self.data if p.opening_line])
