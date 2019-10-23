@@ -6,7 +6,7 @@ GAMMA = 0.999
 MAX_LENGTH = 30
 max_turns_per_episode = 10
 state_length = 4
-retrain_discriminator_every = 500
+retrain_discriminator_every = 15
 
 
 # Default word tokens

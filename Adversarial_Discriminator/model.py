@@ -14,7 +14,7 @@ def loadAdversarial_Discriminator(hidden_size=hidden_size, output_size=2, n_laye
     embedding = nn.Embedding(voc.num_words, hidden_size)
     embedding.load_state_dict(state_dict['embedding'])
     embedding.to(device)
-    model = Adversarial_Discriminator(hidden_size, output_size, embedding, n_layers, dropout)
+    model = Adversarial_Discriminator(hidden_size, output_size, embedding, n_layers, dropout).to(device)
     model.load_state_dict(state_dict['model'])
     return model
 
