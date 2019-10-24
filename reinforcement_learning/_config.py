@@ -7,8 +7,9 @@ MAX_LENGTH = 30
 max_turns_per_episode = 10
 state_length = 4
 retrain_discriminator_every = 1000
-print_every = 25
-teacher_force_ratio = 0.5
+
+print_every = 100
+teacher_force_ratio = 0.4
 
 # Default word tokens
 PAD_token = 0  # Used for padding short sentences
