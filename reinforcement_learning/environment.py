@@ -7,6 +7,7 @@ from reinforcement_learning._config import MAX_LENGTH, max_turns_per_episode, st
 from data.amazon.dataset import standardise_sentence, AlexaDataset
 
 
+
 def chat(policy, env):
     env.reset()
     env._state = []
@@ -24,12 +25,10 @@ def chat(policy, env):
         except KeyError:
             print("Error: Encountered unknown word.")
 
-
 def pad_with_zeroes(seq):
     state_tensor = torch.zeros((1, MAX_LENGTH), device=device).long()
     # state_tensor[1, :len(seq)] = torch.LongTensor(seq)
     state_tensor[1, :len(seq)] = torch.tensor(seq, device=device, dtype=torch.long)
-
     return state_tensor
 
 class Env(object):
@@ -50,8 +49,9 @@ class Env(object):
 
     def state_of_len(self, n):
         n = len(self._state) if n > len(self._state) else n
-        return torch.cat(self._state[-n:], 1)
-
+        state_seq = torch.cat(self._state[-n:], 1)
+        state_tens = torch.zeros((1, len(state_seq) + random.randint(0,5)), device=device, dtype=torch.long)
+        return state_tens
 
     def update_state(self, tensor):
         if len(self._state) >= self.state_length:
@@ -74,6 +74,7 @@ class Env(object):
 
     def user_sim(self, state):
         if self.user_sim_model:
+            # take [0] as user_sim_model returns (action, probability)
             return self.user_sim_model(state)[0]
         else:
             return self.sentence2tensor(" ".join(['hello']))
@@ -94,8 +95,8 @@ class Env(object):
     def calculate_reward(self, next_state):
         # TODO: reward should probably be a vector of whole sentence, with reward for each token
 
-        # return 0.5 * (float(self.adem.predict(next_state).item() / 4) + float(1 - self.AD(next_state))) # Both
-        # return float(1 - self.AD(next_state)) # Discriminator only
+        # return 0.5 * (float(self.adem.predict(next_state).item() / 4) + float(self.AD(next_state))) # Both
+        # return float(self.AD(next_state)) # Discriminator only
         return (float(self.adem.predict(next_state).item() / 4)) # ADEM only
 
     def is_done(self):

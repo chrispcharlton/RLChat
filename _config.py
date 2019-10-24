@@ -11,6 +11,7 @@ decoder_learning_ratio = 5.0
 
 save_every = 500
 
+
 # Default word tokens
 PAD_token = 0  # Used for padding short sentences
 SOS_token = 1  # Start-of-sentence token

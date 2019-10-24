@@ -112,6 +112,17 @@ class AlexaDataset(Dataset):
         print('{} pairs trimmed, {} remain'.format(len(self.data) - len(new_data), len(new_data)))
         self.data = new_data
 
+    def trimPairsToVocab(self, voc):
+        keepPairs = []
+        for pair in self.data:
+            keep = True
+            for word in pair.utterance.split(' ') + pair.response.split(' '):
+                if word not in voc.word2index:
+                    keep = False
+            if keep:
+                keepPairs.append(pair)
+        print('=============={}=============='.format(len(self.data)-len(keepPairs)))
+        self.data = keepPairs
 
 if __name__ == '__main__':
     data = AlexaDataset(rare_word_threshold=2)

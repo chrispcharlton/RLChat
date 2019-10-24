@@ -9,6 +9,7 @@ state_length = 4
 retrain_discriminator_every = 1000
 
 print_every = 100
+
 teacher_force_ratio = 0.4
 
 # Default word tokens
