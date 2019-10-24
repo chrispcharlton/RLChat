@@ -47,7 +47,9 @@ class Env(object):
 
     def state_of_len(self, n):
         n = len(self._state) if n > len(self._state) else n
-        return torch.cat(self._state[-n:], 1)
+        state_seq = torch.cat(self._state[-n:], 1)
+        state_tens = torch.zeros((1, len(state_seq) + random.randint(0,5)), device=device, dtype=torch.long)
+        return state_tens
 
     def update_state(self, tensor):
         if len(self._state) >= self.state_length:
@@ -78,7 +80,7 @@ class Env(object):
     def step(self, action, teacher_response=None):
         self.n_turns += 2
         self.update_state(action)
-        reward = self.calculate_reward(self.state_of_len(2)) if teacher_response is None else float(2)
+        reward = self.calculate_reward(self.state_of_len(2)) if teacher_response is None else float(1)
         done = self.is_done()
         if not done:
             next_utterance = self.user_sim(self.state) if teacher_response is None else self.sentence2tensor(teacher_response)
