@@ -3,7 +3,7 @@ from _requirements import *
 from ADEM import loadADEM
 from seq2seq import indexesFromSentence
 from reinforcement_learning._config import MAX_LENGTH, max_turns_per_episode, state_length
-from data.amazon.dataset import AlexaDataset
+
 
 def chat(policy, env):
     input_sentence = ''
@@ -23,12 +23,10 @@ def chat(policy, env):
         except KeyError:
             print("Error: Encountered unknown word.")
 
-
 def pad_with_zeroes(seq):
     state_tensor = torch.zeros((1, MAX_LENGTH), device=device).long()
     # state_tensor[1, :len(seq)] = torch.LongTensor(seq)
     state_tensor[1, :len(seq)] = torch.tensor(seq, device=device, dtype=torch.long)
-
     return state_tensor
 
 class Env(object):
@@ -51,7 +49,6 @@ class Env(object):
         n = len(self._state) if n > len(self._state) else n
         return torch.cat(self._state[-n:], 1)
 
-
     def update_state(self, tensor):
         if len(self._state) >= self.state_length:
             self._state.pop(0)
@@ -73,6 +70,7 @@ class Env(object):
 
     def user_sim(self, state):
         if self.user_sim_model:
+            # take [0] as user_sim_model returns (action, probability)
             return self.user_sim_model(state)[0]
         else:
             return self.sentence2tensor(" ".join(['hello']))
@@ -80,7 +78,7 @@ class Env(object):
     def step(self, action, teacher_response=None):
         self.n_turns += 2
         self.update_state(action)
-        reward = self.calculate_reward(self.state_of_len(2)) if teacher_response is None else float(1)
+        reward = self.calculate_reward(self.state_of_len(2)) if teacher_response is None else float(2)
         done = self.is_done()
         if not done:
             next_utterance = self.user_sim(self.state) if teacher_response is None else self.sentence2tensor(teacher_response)
