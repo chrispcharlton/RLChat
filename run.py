@@ -56,7 +56,6 @@ if __name__ == '__main__':
             load_dir = os.path.join(BASE_DIR, SAVE_PATH_SEQ2SEQ)
 
             policy, env, total_rewards, dqn_losses = train(load_dir=load_dir, num_episodes=num_episodes)
-g
 
     elif args.subparser_name == 'chat':
         """ 

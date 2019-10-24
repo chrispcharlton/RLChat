@@ -7,7 +7,7 @@ MAX_LENGTH = 30
 max_turns_per_episode = 10
 state_length = 4
 retrain_discriminator_every = 1000
-print_every = 1
+print_every = 25
 teacher_force_ratio = 0.5
 
 # Default word tokens
