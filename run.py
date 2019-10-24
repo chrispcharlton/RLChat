@@ -49,16 +49,13 @@ if __name__ == '__main__':
             train()
 
         elif args.model == "rl":
-            from reinforcement_learning import train, chat
+            from reinforcement_learning.train import train
 
             num_episodes = 10000
-            chat_too = False
             load_dir = os.path.join(BASE_DIR, SAVE_PATH_SEQ2SEQ)
 
             policy, env, total_rewards, dqn_losses = train(load_dir=load_dir, num_episodes=num_episodes)
 
-            if chat_too:
-                chat(policy, env)
 
     elif args.subparser_name == 'chat':
         """ 

@@ -72,13 +72,14 @@ class Env(object):
         else:
             return self.sentence2tensor(" ".join(['hello']))
 
-    def step(self, action):
+    def step(self, action, teacher_response=None):
         self.n_turns += 2
         self.update_state(action)
-        reward = self.calculate_reward(self.state)
+        reward = self.calculate_reward(self.state) if teacher_response is None else float(1)
         done = self.is_done()
         if not done:
-            self.update_state(self.user_sim(self.state))
+            next_utterance = self.user_sim(self.state) if teacher_response is None else self.sentence2tensor(teacher_response)
+            self.update_state(next_utterance)
             next_state = self.state
         else:
             next_state = None
@@ -86,8 +87,8 @@ class Env(object):
 
     def calculate_reward(self, next_state):
         # TODO: reward should probably be a vector of whole sentence, with reward for each token
-        return 0.5 * (float(self.adem.predict(next_state).item() / 4) + (1 - float(self.AD.predict(next_state).item()) ** 2)) # Both
-        # return (1 - float(self.AD.predict(next_state).item()) ** 2) # Discriminator only
+        # return 0.5 * (float(self.adem.predict(next_state).item() / 4) + float(self.AD.predict(next_state))) # Both
+        return float(self.AD.predict(next_state)) # Discriminator only
         # return (float(self.adem.predict(next_state).item() / 4)) # ADEM only
 
     def is_done(self):
