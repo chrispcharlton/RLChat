@@ -1,13 +1,17 @@
 from _requirements import *
+from _config import *
 from seq2seq.loader import loadModel, saveStateDict
+from seq2seq.vocab import Voc
 from reinforcement_learning.qnet import DQN
-from reinforcement_learning._config import save_every, hidden_size, learning_rate, BATCH_SIZE, GAMMA
-from reinforcement_learning.environment import Env
+from reinforcement_learning._config import save_every, hidden_size, learning_rate, BATCH_SIZE, GAMMA, retrain_discriminator_every, print_every
+from reinforcement_learning.environment import Env, chat
 from reinforcement_learning.model import RLGreedySearchDecoder
+from Adversarial_Discriminator.train import trainAdversarialDiscriminatorOnLatestSeq2Seq
 from collections import namedtuple
 from numpy import mean
-
 from constants import *
+from data.amazon.dataset import AlexaDataset
+from torch.utils.data import DataLoader
 
 Transition = namedtuple('Transition',
                         ('state', 'action', 'next_state', 'reward', 'done', 'prob'))
@@ -43,67 +47,6 @@ def seqs_to_padded_tensors(seqs, max_length=None):
             # state_tensor[idx, :seq_len] = torch.LongTensor(seq)
             state_tensor[idx, :seq_len] = torch.tensor(seq, device=device, dtype=torch.long)
     return state_tensor, lengths
-
-
-def optimize_batch(searcher, memory, en_optimizer, de_optimizer):
-
-    ## TODO: clean up this function
-
-    if len(memory) < BATCH_SIZE:
-        return None
-
-    transitions = memory.sample(BATCH_SIZE)
-    # Transpose the batch (see https://stackoverflow.com/a/19343/3343043 for
-    # detailed explanation). This converts batch-array of Transitions
-    # to Transition of batch-arrays.
-    batch = Transition(*zip(*transitions))
-
-    # Convert batch to stacked tensors to input into model and sort by state length
-    states, state_lengths = seqs_to_padded_tensors([s[0] for s in batch.state])
-    next_states, next_state_lengths = seqs_to_padded_tensors([s[0] for s in batch.next_state])
-
-    state_lengths, perm_idx = state_lengths.sort(0, descending=True)
-    states = states[perm_idx]
-    next_states = next_states[perm_idx]
-
-    reward_batch = torch.cat(batch.reward)
-    reward_batch = reward_batch[perm_idx]
-
-    # Compute a mask of non-final states. Mask is used to allocate 0 future reward to terminal states.
-    # (a final state would've been the one after which simulation ended)
-    non_final_mask = torch.tensor(tuple(map(lambda s: s is not None, next_states)), device=device, dtype=torch.bool)
-    non_final_next_states = torch.stack([s for s in next_states if s is not None])
-
-    # Compute Q(s_t, a) - the model computes Q(s_t).
-    ## TODO: check that final score (output probability) for action is correct. Maybe should be using average for whole action?
-    state_action_values = torch.stack([torch.tensor([t[-1]], requires_grad=True, device=device) for t in searcher(states)[1]], dim=1)
-
-    # Compute V(s_{t+1}) for all next states.
-    # Expected values of actions for non_final_next_states are computed based
-    # on the "older" target_net
-    # This is merged based on the mask, such that we'll have either the expected
-    # state value or 0 in case the state was final.
-    next_state_values = torch.zeros(BATCH_SIZE, 1, device=device)
-    next_state_values[non_final_mask] = torch.stack([torch.tensor([t[-1]], requires_grad=True, device=device) for t in searcher(non_final_next_states)[1]])
-
-    # Compute the expected Q values for next states
-    expected_state_action_values = (next_state_values * GAMMA) + reward_batch
-
-    # Compute Huber loss
-    loss = F.smooth_l1_loss(state_action_values, expected_state_action_values)
-
-    # Optimize the model
-    en_optimizer.zero_grad()
-    de_optimizer.zero_grad()
-    loss.backward()
-    # for param in searcher.encoder.parameters():
-    #     param.grad.data.clamp_(-1, 1)
-    # for param in searcher.decoder.parameters():
-    #     param.grad.data.clamp_(-1, 1)
-    en_optimizer.step()
-    de_optimizer.step()
-
-    return loss
 
 
 def optimise_qnet(state_action_values, expected_state_action_values, qnet, qnet_optimizer, retain_graph=True):
@@ -177,14 +120,15 @@ def optimize_batch_q(policy, qnet, qnet_optimizer, memory, en_optimizer, de_opti
     return dqn_loss, policy_loss
 
 
-def train(load_dir=SAVE_PATH, save_dir=SAVE_PATH_RL, num_episodes=50, env=None):
+def train(load_dir=SAVE_PATH, save_dir=SAVE_PATH_RL, num_episodes=10000, env=None):
     episode, encoder, decoder, encoder_optimizer, decoder_optimizer, voc = loadModel(directory=load_dir)
+    voc = Voc.from_dataset(AlexaDataset())
     policy = RLGreedySearchDecoder(encoder, decoder, voc)
     embedding = nn.Embedding(voc.num_words, hidden_size)
     qnet = DQN(hidden_size, embedding).to(device)
     qnet_optimizer = torch.optim.Adam(qnet.parameters(), lr=learning_rate)
     memory = ReplayMemory(1000)
-    env = env if env else Env(voc)
+    env = env if env else Env(voc, AlexaDataset())
 
     # set episode number to 0 if starting from warm-started model. If loading rl-trained model continue from current number of eps
     if "/rl_models/" not in load_dir:
@@ -192,6 +136,8 @@ def train(load_dir=SAVE_PATH, save_dir=SAVE_PATH_RL, num_episodes=50, env=None):
 
     total_rewards = []
     dqn_losses = []
+
+    ad_data = DataLoader(env.dataset, batch_size=BATCH_SIZE, shuffle=True)
 
     # RL training loop
     print("Training for {} episodes...".format(num_episodes))
@@ -222,17 +168,36 @@ def train(load_dir=SAVE_PATH, save_dir=SAVE_PATH_RL, num_episodes=50, env=None):
         total_rewards.append(ep_reward)
         dqn_losses.append(ep_q_loss)
 
-        print("Episode {} completed, lasted {} turns -- Total Reward : {} -- Average DQN Loss : {}".format(i_episode, env.n_turns, ep_reward, ep_q_loss))
+        if i_episode % print_every == 0:
+            print("Episode {} completed, lasted {} turns -- Total Reward : {} -- Average DQN Loss : {}".format(i_episode, env.n_turns, ep_reward, ep_q_loss))
 
         # only save if optimisation has been done
         if i_episode % save_every == 0 and policy_loss:
             saveStateDict(episode + i_episode, encoder, decoder, encoder_optimizer, decoder_optimizer, policy_loss, voc, encoder.embedding, save_dir)
 
+        if i_episode % retrain_discriminator_every == 0:
+            print('Updating Discriminator...')
+            optimizer = torch.optim.Adam(env.AD.parameters(), lr=learning_rate)
+            criterion = nn.CrossEntropyLoss()
+            for i in range(1):
+                loss = trainAdversarialDiscriminatorOnLatestSeq2Seq(env.AD, policy, voc, ad_data, criterion, optimizer, embedding, 'data/save/Adversarial_Discriminator/', i)
+            torch.save({
+                'iteration': i_episode,
+                'model': env.AD.state_dict(),
+                'opt': optimizer.state_dict(),
+                'loss': loss,
+                'voc_dict': voc.__dict__,
+                'embedding': embedding.state_dict()
+            }, os.path.join(save_dir, '{}_{}.tar'.format(i_episode, 'epochs')))
+
         # TODO: implement target/policy net (DDQN)?
         # if i_episode % TARGET_UPDATE == 0:
         #     target_net.load_state_dict(policy_net.state_dict())
 
+    print('Training Complete!')
     return policy, env, total_rewards, dqn_losses
 
+
 if __name__ == '__main__':
-    train(num_episodes=30)
+    policy, env, total_rewards, dqn_losses = train(num_episodes=30)
+    chat(policy, env)

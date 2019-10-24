@@ -5,7 +5,7 @@ from data.amazon.dataset import AlexaDataset
 
 from torch.utils.data import DataLoader
 
-from reinforcement_learning.rl_methods import RLGreedySearchDecoder
+from reinforcement_learning.model import RLGreedySearchDecoder
 from seq2seq.chat import *
 
 from seq2seq.models import EncoderRNN, LuongAttnDecoderRNN
@@ -88,7 +88,7 @@ def trainAdversarialDiscriminatorOnLatestSeq2Seq(
         optimizer.step()
         # print('batch {}\n'.format(i))
 
-        if i % 10 == 0:
+        if i % 100 == 0:
             print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.2f}'.format(epoch, i * len(batch[0]), len(data_loader.dataset),
                                         100. * i * len(batch[0]) / len(data_loader.dataset), total_loss / i * len(batch)))
         # if(i % 100 == 0):
@@ -127,7 +127,7 @@ def test_AdversarialDiscriminatorOnLatestSeq2Seq(model, searcher, data_loader, v
         padded_input_sentence_tokens = [indexes + list(itertools.repeat(PAD_token, maxLength - len(indexes))) for indexes in input_sentence_tokens]
 
         input_batch = torch.tensor(padded_input_sentence_tokens, device=device, dtype=torch.long)
-        output_sentence_tokens, scores = searcher(input_batch, MAX_LENGTH)
+        output_sentence_tokens, scores = searcher(input_batch)
         compiledSequence = torch.cat([input_batch, output_sentence_tokens], dim=1).to(device)
         target[:] = 0
         pred = model.predict(compiledSequence)
@@ -139,42 +139,15 @@ def test_AdversarialDiscriminatorOnLatestSeq2Seq(model, searcher, data_loader, v
 def train():
     N_EPOCHS = 10
     output_size = 2
-
-    ##TODO: shuffle train/test between epochs as some words are exclusive between the pre-defined sets
-
     save_dir = 'data/save/Adversarial_Discriminator/'
 
-    # corpus_name = "movie_dialogs"
-    # corpus = os.path.join("../data", corpus_name)
-    # # corpus = os.path.join("C:\\Users\\Christopher\\PycharmProjects\\RLChat","data", corpus_name)
-    # # Define path to new file
-    # datafile = os.path.join(corpus, "formatted_movie_lines.txt")
-
-    # Load/Assemble voc and pairs
-    # save_dir = os.path.join("data", "save")
-    # voc, p1 = loadPrepareData(corpus, corpus_name, datafile, save_dir)
-
-    # pairs = list(zip(p1, itertools.repeat(1, len(p1))))
-
-    # datafile2 = os.path.join(corpus, "scrambled_second_sentence_movie_lines.txt")
-    # voc2, p2 = loadPrepareData(corpus, corpus_name, datafile2, save_dir)
-
-    # pairs.append(list(zip(p2, itertools.repeat(0, len(p2)))))
-
-    # pairs = random.shuffle(pairs)
-    # batches = batch(pairs, BATCH_SIZE)
     attn_model = 'dot'
-    # attn_model = 'general'
-    # attn_model = 'concat'
     hidden_size = 500
     encoder_n_layers = 2
     decoder_n_layers = 2
     dropout = 0.1
 
     seq2seqModel = load_latest_state_dict(savepath=SAVE_PATH_SEQ2SEQ)
-    # voc = Voc(seq2seqModel['voc_dict']['name'])
-    # voc.__dict__ = seq2seqModel['voc_dict']
-    # voc, pairs = loadAlexaData()  #
     voc = Voc.from_dataset(AlexaDataset(rare_word_threshold=0))
 
     embedding = nn.Embedding(voc.num_words, hidden_size)
@@ -182,7 +155,6 @@ def train():
     model.to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
     criterion = nn.CrossEntropyLoss()
-    # embedding = nn.Embedding(voc.num_words, hidden_size)
 
     encoder = EncoderRNN(hidden_size, embedding, encoder_n_layers, dropout)
     decoder = LuongAttnDecoderRNN(attn_model, embedding, hidden_size, voc.num_words, decoder_n_layers, dropout)
@@ -214,5 +186,7 @@ def train():
                 'embedding': embedding.state_dict()
             }, os.path.join(save_dir, '{}_{}.tar'.format(epoch, 'epochs')))
 
-
         test_AdversarialDiscriminatorOnLatestSeq2Seq(model, searcher, test_loader, voc)
+
+if __name__ == '__main__':
+    train()
