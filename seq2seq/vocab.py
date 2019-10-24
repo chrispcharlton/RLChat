@@ -1,7 +1,7 @@
 from _requirements import *
 from _config import PAD_token, SOS_token, EOS_token, MAX_LENGTH
 from seq2seq.processText import load_alexa_pairs
-
+from data.amazon.dataset import standardise_sentence
 
 class Voc:
     def __init__(self, name):
@@ -21,8 +21,8 @@ class Voc:
         # filter pairs longer than MAX_LENGTH
         print("Counting words...")
         for pair in dataset:
-            voc.addSentence(pair.utterance)
-            voc.addSentence(pair.response)
+            voc.addSentence(standardise_sentence(pair.utterance))
+            voc.addSentence(standardise_sentence(pair.response))
         print("Counted words:", voc.num_words)
         return voc
 

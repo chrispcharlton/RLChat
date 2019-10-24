@@ -3,7 +3,7 @@ from _config import *
 from seq2seq.loader import loadModel, saveStateDict
 from seq2seq.vocab import Voc
 from reinforcement_learning.qnet import DQN
-from reinforcement_learning._config import save_every, hidden_size, learning_rate, BATCH_SIZE, GAMMA, retrain_discriminator_every, print_every
+from reinforcement_learning._config import save_every, hidden_size, learning_rate, BATCH_SIZE, GAMMA, retrain_discriminator_every, print_every, teacher_force_ratio
 from reinforcement_learning.environment import Env, chat
 from reinforcement_learning.model import RLGreedySearchDecoder
 from Adversarial_Discriminator.train import trainAdversarialDiscriminatorOnLatestSeq2Seq
@@ -119,8 +119,62 @@ def optimize_batch_q(policy, qnet, qnet_optimizer, memory, en_optimizer, de_opti
 
     return dqn_loss, policy_loss
 
+def teacher_force_ep(env, memory, policy, qnet, qnet_optimizer, encoder_optimizer, decoder_optimizer):
+    conv = []
+    while len(conv) < 2:
+        conv = env.dataset.random_conversation()
+    pair = conv.pop(0)
+    env.reset(pair.utterance)
+    state = env.state
+    done = False
+    length = 0
+    ep_reward = 0
+    ep_q_loss = []
+    while not done:
+        pair = conv.pop(0)
+        length += 1
+        action, prob = env.sentence2tensor(pair.utterance), 1.00
+        prob = torch.tensor([prob], device=device)
+        reward, next_state, done = env.step(action, teacher_response=pair.response)
+        ep_reward += reward
+        reward = torch.tensor([reward], device=device)
+        memory.push(state, action, next_state, reward, done, prob)
+        state = next_state
+        dqn_loss, policy_loss = optimize_batch_q(policy, qnet, qnet_optimizer, memory, encoder_optimizer,
+                                                 decoder_optimizer)
+        dqn_loss = dqn_loss.item() if dqn_loss is not None else 0
+        ep_q_loss.append(dqn_loss)
+        if len(conv) > 1:
+            conv.pop(0)
+        else:
+            done = True
+    ep_q_loss = mean(ep_q_loss)
+    return ep_q_loss, ep_reward, policy_loss
 
-def train(load_dir=SAVE_PATH, save_dir=SAVE_PATH_RL, num_episodes=10000, env=None):
+def model_ep(env, memory, policy, qnet, qnet_optimizer, encoder_optimizer, decoder_optimizer):
+    env.reset()
+    state = env.state
+    done = False
+    length = 0
+    ep_reward = 0
+    ep_q_loss = []
+    while not done:
+        length += 1
+        action, prob = policy(state)
+        prob = torch.tensor([torch.mean(prob)], device=device)
+        reward, next_state, done = env.step(action)
+        ep_reward += reward
+        reward = torch.tensor([reward], device=device)
+        memory.push(state, action, next_state, reward, done, prob)
+        state = next_state
+        dqn_loss, policy_loss = optimize_batch_q(policy, qnet, qnet_optimizer, memory, encoder_optimizer,
+                                                 decoder_optimizer)
+        dqn_loss = dqn_loss.item() if dqn_loss is not None else 0
+        ep_q_loss.append(dqn_loss)
+    ep_q_loss = mean(ep_q_loss)
+    return ep_q_loss, ep_reward, policy_loss
+
+def train(load_dir=SAVE_PATH, save_dir=SAVE_PATH_RL, num_episodes=10000, env=None, teacher_force_ratio=teacher_force_ratio):
     episode, encoder, decoder, encoder_optimizer, decoder_optimizer, voc = loadModel(directory=load_dir)
     voc = Voc.from_dataset(AlexaDataset())
     policy = RLGreedySearchDecoder(encoder, decoder, voc)
@@ -145,26 +199,10 @@ def train(load_dir=SAVE_PATH, save_dir=SAVE_PATH_RL, num_episodes=10000, env=Non
     for i_episode in range(1, num_episodes+1):
         if i_episode % 10 == 0:
             env.user_sim_model = policy
-        env.reset()
-        state = env.state
-        done = False
-        length = 0
-        ep_reward = 0
-        ep_q_loss = []
-        while not done:
-            length += 1
-            action, prob = policy(state)
-            prob = torch.tensor([torch.mean(prob)], device=device)
-            reward, next_state, done = env.step(action)
-            ep_reward += reward
-            reward = torch.tensor([reward], device=device)
-            memory.push(state, action, next_state, reward, done, prob)
-            state = next_state
-            dqn_loss, policy_loss = optimize_batch_q(policy, qnet, qnet_optimizer, memory, encoder_optimizer, decoder_optimizer)
-            total_rewards.append(ep_reward)
-            dqn_loss = dqn_loss.item() if dqn_loss is not None else 0
-            ep_q_loss.append(dqn_loss)
-        ep_q_loss = mean(ep_q_loss)
+        if random.random() < teacher_force_ratio:
+            ep_q_loss, ep_reward, policy_loss = teacher_force_ep(env, memory, policy, qnet, qnet_optimizer, encoder_optimizer, decoder_optimizer)
+        else:
+            ep_q_loss, ep_reward, policy_loss = model_ep(env, memory, policy, qnet, qnet_optimizer, encoder_optimizer, decoder_optimizer)
         total_rewards.append(ep_reward)
         dqn_losses.append(ep_q_loss)
 
@@ -202,5 +240,5 @@ def train(load_dir=SAVE_PATH, save_dir=SAVE_PATH_RL, num_episodes=10000, env=Non
 
 
 if __name__ == '__main__':
-    policy, env, total_rewards, dqn_losses = train(num_episodes=30)
+    policy, env, total_rewards, dqn_losses = train(num_episodes=1)
     chat(policy, env)

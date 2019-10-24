@@ -15,8 +15,7 @@ from seq2seq import indexesFromSentence, Voc, load_latest_state_dict
 def prepare_batch(batch, voc):
     # index_seqs = [indexesFromSentence(voc, normalizeString(u)) + indexesFromSentence(voc, normalizeString(r)) for u, r in
     #               zip(batch.utterance, batch.response)]
-    index_seqs = [indexesFromSentence(voc, u) + indexesFromSentence(voc, r) for u, r in
-                  zip(batch.utterance, batch.response)]
+    index_seqs = [indexesFromSentence(voc, u) + indexesFromSentence(voc, r) for u, r in zip(batch.utterance, batch.response)]
     lengths = torch.tensor([len(s) for s in index_seqs], device=device, dtype=torch.long) #, device=device)
 
     seq_tensor = torch.zeros((len(index_seqs), lengths.max()), device=device, dtype=torch.long)
@@ -53,7 +52,7 @@ def trainAdversarialDiscriminatorOnLatestSeq2Seq(
 
     for i, batch in enumerate(data_loader, 1):
         seq, target  = prepare_batch(batch, voc)
-        target[:] = 1 #human conversation example
+        target = torch.ones([len(seq),1], dtype=torch.float, device=device) #human conversation example
         output = model(seq)
         loss = criterion(output, target)
         total_loss += loss.item()
@@ -80,7 +79,7 @@ def trainAdversarialDiscriminatorOnLatestSeq2Seq(
 
 
         output =  model(compiledSequence)
-        target[:] = 0 # bot conversation sample
+        target = torch.zeros([len(seq),1], dtype=torch.float, device=device) # bot conversation sample
         loss = criterion(output, target)
         total_loss += loss.item()
         model.zero_grad()
@@ -88,7 +87,7 @@ def trainAdversarialDiscriminatorOnLatestSeq2Seq(
         optimizer.step()
         # print('batch {}\n'.format(i))
 
-        if i % 100 == 0:
+        if i % 1 == 0:
             print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.2f}'.format(epoch, i * len(batch[0]), len(data_loader.dataset),
                                         100. * i * len(batch[0]) / len(data_loader.dataset), total_loss / i * len(batch)))
         # if(i % 100 == 0):
@@ -100,7 +99,6 @@ def trainAdversarialDiscriminatorOnLatestSeq2Seq(
         #         'voc_dict': voc.__dict__,
         #         'embedding': embedding.state_dict()
         #     }, os.path.join(save_dir, '{}_{}.tar'.format(i+epoch, 'batches')))
-
 
     return total_loss
 
@@ -138,8 +136,8 @@ def test_AdversarialDiscriminatorOnLatestSeq2Seq(model, searcher, data_loader, v
 
 
 def train():
-    N_EPOCHS = 10
-    output_size = 2
+    N_EPOCHS = 5
+    output_size = 1
     save_dir = 'data/save/Adversarial_Discriminator/'
 
     attn_model = 'dot'
@@ -149,13 +147,14 @@ def train():
     dropout = 0.1
 
     seq2seqModel = load_latest_state_dict(savepath=SAVE_PATH_SEQ2SEQ)
-    voc = Voc.from_dataset(AlexaDataset(rare_word_threshold=0))
+    voc = Voc('name')
+    voc.__dict__ = seq2seqModel['voc_dict']
 
     embedding = nn.Embedding(voc.num_words, hidden_size)
     model = Adversarial_Discriminator(hidden_size, output_size, embedding)
     model.to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
-    criterion = nn.CrossEntropyLoss()
+    criterion = nn.BCELoss()
 
     encoder = EncoderRNN(hidden_size, embedding, encoder_n_layers, dropout)
     decoder = LuongAttnDecoderRNN(attn_model, embedding, hidden_size, voc.num_words, decoder_n_layers, dropout)
@@ -170,14 +169,14 @@ def train():
     train_data = AlexaDataset('train.json', rare_word_threshold=3)  # sorry cornell
     train_loader = DataLoader(train_data, batch_size=batch_size, shuffle=True)
 
-    test_data = AlexaDataset('train.json', rare_word_threshold=3)
+    test_data = AlexaDataset('test_freq.json', rare_word_threshold=3)
     test_loader = DataLoader(test_data, batch_size=batch_size, shuffle=True)
 
     for epoch in range(1, N_EPOCHS + 1):
         loss = trainAdversarialDiscriminatorOnLatestSeq2Seq(model, searcher, voc, train_loader, criterion, optimizer,
                                                             embedding, save_dir, epoch)
 
-        if epoch % 3 == 0:
+        if epoch % 1 == 0:
             torch.save({
                 'iteration': epoch,
                 'model': model.state_dict(),

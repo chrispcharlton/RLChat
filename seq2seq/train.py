@@ -59,7 +59,7 @@ def train():
     # voc, pairs = loadAlexaData()
     # _, pairs = loadAlexaData()
 
-    dataset = AlexaDataset(rare_word_threshold=0)
+    dataset = AlexaDataset()
     pairs = dataset.data
 
     voc = Voc.from_dataset(dataset)
