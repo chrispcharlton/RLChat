@@ -88,7 +88,7 @@ class Env(object):
     def calculate_reward(self, next_state):
         # TODO: reward should probably be a vector of whole sentence, with reward for each token
         # return 0.5 * (float(self.adem.predict(next_state).item() / 4) + float(self.AD.predict(next_state))) # Both
-        return -float(self.AD.predict(next_state)) # Discriminator only
+        return float(self.AD.predict(next_state)) # Discriminator only
         # return (float(self.adem.predict(next_state).item() / 4)) # ADEM only
 
     def is_done(self):
