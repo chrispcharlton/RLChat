@@ -176,13 +176,13 @@ def model_ep(env, memory, policy, qnet, qnet_optimizer, encoder_optimizer, decod
 
 def train(load_dir=SAVE_PATH, save_dir=SAVE_PATH_RL, num_episodes=10000, env=None, teacher_force_ratio=teacher_force_ratio):
     episode, encoder, decoder, encoder_optimizer, decoder_optimizer, voc = loadModel(directory=load_dir)
-    voc = Voc.from_dataset(AlexaDataset())
     policy = RLGreedySearchDecoder(encoder, decoder, voc)
     embedding = nn.Embedding(voc.num_words, hidden_size)
     qnet = DQN(hidden_size, embedding).to(device)
     qnet_optimizer = torch.optim.Adam(qnet.parameters(), lr=learning_rate)
     memory = ReplayMemory(1000)
     env = env if env else Env(voc, AlexaDataset())
+    env.dataset.trimPairsToVocab(voc)
 
     # set episode number to 0 if starting from warm-started model. If loading rl-trained model continue from current number of eps
     if "/rl_models/" not in load_dir:
@@ -216,7 +216,7 @@ def train(load_dir=SAVE_PATH, save_dir=SAVE_PATH_RL, num_episodes=10000, env=Non
         if i_episode % retrain_discriminator_every == 0:
             print('Updating Discriminator...')
             optimizer = torch.optim.Adam(env.AD.parameters(), lr=learning_rate)
-            criterion = nn.CrossEntropyLoss()
+            criterion = nn.BCELoss()
             for i in range(1):
                 loss = trainAdversarialDiscriminatorOnLatestSeq2Seq(env.AD, policy, voc, ad_data, criterion, optimizer, embedding, 'data/save/Adversarial_Discriminator/', i)
             torch.save({

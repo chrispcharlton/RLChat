@@ -52,9 +52,13 @@ def trainAdversarialDiscriminatorOnLatestSeq2Seq(
 
     for i, batch in enumerate(data_loader, 1):
         seq, target  = prepare_batch(batch, voc)
-        target = torch.ones([len(seq),1], dtype=torch.float, device=device) #human conversation example
         output = model(seq)
-        loss = criterion(output, target)
+        try:
+            target = torch.ones([len(seq),1], dtype=torch.float, device=device)
+            loss = criterion(output, target)
+        except:
+            target = torch.ones([len(seq), 1], dtype=torch.long, device=device)
+            loss = criterion(output, target)
         total_loss += loss.item()
         model.zero_grad()
         loss.backward()
@@ -77,10 +81,13 @@ def trainAdversarialDiscriminatorOnLatestSeq2Seq(
         output_sentence_tokens, scores = searcher(input_batch, MAX_LENGTH)
         compiledSequence = torch.cat([input_batch, output_sentence_tokens], dim=1).to(device)
 
-
         output =  model(compiledSequence)
-        target = torch.zeros([len(seq),1], dtype=torch.float, device=device) # bot conversation sample
-        loss = criterion(output, target)
+        try:
+            target = torch.zeros([len(seq),1], dtype=torch.float, device=device)
+            loss = criterion(output, target)
+        except:
+            target = torch.zeros([len(seq), 1], dtype=torch.long, device=device)
+            loss = criterion(output, target)
         total_loss += loss.item()
         model.zero_grad()
         loss.backward()
@@ -89,7 +96,7 @@ def trainAdversarialDiscriminatorOnLatestSeq2Seq(
 
         if i % 1 == 0:
             print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.2f}'.format(epoch, i * len(batch[0]), len(data_loader.dataset),
-                                        100. * i * len(batch[0]) / len(data_loader.dataset), total_loss / i * len(batch)))
+                                                                           100. * i * len(batch[0]) / len(data_loader.dataset), total_loss / i * len(batch)))
         # if(i % 100 == 0):
         #     torch.save({
         #         'iteration': i+epoch,
@@ -114,8 +121,7 @@ def test_AdversarialDiscriminatorOnLatestSeq2Seq(model, searcher, data_loader, v
         target[:] = 1
         pred = model(seq)
 
-        correctlyHuman = torch.sum(pred >= 0.5)
-        print(correctlyHuman)
+        correctlyHuman = sum(pred >= 0.5).item()
 
         # input_sentence_tokens = [indexesFromSentence(voc, normalizeString(u)) for u in batch.utterance]
         input_sentence_tokens = [indexesFromSentence(voc, u) for u in batch.utterance]
@@ -130,9 +136,12 @@ def test_AdversarialDiscriminatorOnLatestSeq2Seq(model, searcher, data_loader, v
         compiledSequence = torch.cat([input_batch, output_sentence_tokens], dim=1).to(device)
         target[:] = 0
         pred = model(compiledSequence)
-        correctlyBot = torch.sum(pred < 0.5, dim=1)
+        correctlyBot = sum(pred < 0.5).item()
         # print('test batch {}\n'.format(i))
-        print('\nTest set accuracy: correctly guess human: {}/{} ({:.0f}%) ; correctly guess bot: {}/{} ({:.0f}%)'.format(correctlyHuman, test_data_size, (100.0 * correctlyHuman / test_data_size), correctlyBot, test_data_size, 100.0 * correctlyBot / test_data_size))
+
+        print('\nTest set accuracy: correctly guess human: {}/{} ({:.0f}%) ; correctly guess bot: {}/{} ({:.0f}%)'.format(
+            correctlyHuman, batch_size, (100. * correctlyHuman / batch_size), correctlyBot, batch_size, (100. * correctlyBot / batch_size)))
+
 
 
 def train():
@@ -167,12 +176,15 @@ def train():
     searcher = RLGreedySearchDecoder(encoder, decoder, voc)
 
     train_data = AlexaDataset('train.json', rare_word_threshold=3)  # sorry cornell
+    train_data.trimPairsToVocab(voc)
     train_loader = DataLoader(train_data, batch_size=batch_size, shuffle=True)
 
     test_data = AlexaDataset('test_freq.json', rare_word_threshold=3)
+    test_data.trimPairsToVocab(voc)
     test_loader = DataLoader(test_data, batch_size=batch_size, shuffle=True)
 
     for epoch in range(1, N_EPOCHS + 1):
+        test_AdversarialDiscriminatorOnLatestSeq2Seq(model, searcher, test_loader, voc)
         loss = trainAdversarialDiscriminatorOnLatestSeq2Seq(model, searcher, voc, train_loader, criterion, optimizer,
                                                             embedding, save_dir, epoch)
 
@@ -186,7 +198,6 @@ def train():
                 'embedding': embedding.state_dict()
             }, os.path.join(save_dir, '{}_{}.tar'.format(epoch, 'epochs')))
 
-        test_AdversarialDiscriminatorOnLatestSeq2Seq(model, searcher, test_loader, voc)
 
 if __name__ == '__main__':
     train()
