@@ -226,7 +226,7 @@ def train(load_dir=SAVE_PATH, save_dir=SAVE_PATH_RL, num_episodes=10000, env=Non
                 'loss': loss,
                 'voc_dict': voc.__dict__,
                 'embedding': embedding.state_dict()
-            }, os.path.join(save_dir, '{}_{}.tar'.format(i_episode, 'epochs')))
+            }, os.path.join(save_dir, '{}_{}_AD.tar'.format(i_episode, 'epochs')))
 
         # TODO: implement target/policy net (DDQN)?
         # if i_episode % TARGET_UPDATE == 0:

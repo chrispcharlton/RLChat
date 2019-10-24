@@ -112,9 +112,10 @@ def test_AdversarialDiscriminatorOnLatestSeq2Seq(model, searcher, data_loader, v
     for batch in data_loader:
         seq, target = prepare_batch(batch, voc)
         target[:] = 1
-        pred = model.predict(seq)
+        pred = model(seq)
 
-        correctlyHuman += pred.eq(target.data.view_as(pred)).cpu().sum()
+        correctlyHuman = torch.sum(pred >= 0.5)
+        print(correctlyHuman)
 
         # input_sentence_tokens = [indexesFromSentence(voc, normalizeString(u)) for u in batch.utterance]
         input_sentence_tokens = [indexesFromSentence(voc, u) for u in batch.utterance]
@@ -128,8 +129,8 @@ def test_AdversarialDiscriminatorOnLatestSeq2Seq(model, searcher, data_loader, v
         output_sentence_tokens, scores = searcher(input_batch)
         compiledSequence = torch.cat([input_batch, output_sentence_tokens], dim=1).to(device)
         target[:] = 0
-        pred = model.predict(compiledSequence)
-        correctlyBot += pred.eq(target.data.view_as(pred)).cpu().sum()
+        pred = model(compiledSequence)
+        correctlyBot = torch.sum(pred < 0.5, dim=1)
         # print('test batch {}\n'.format(i))
         print('\nTest set accuracy: correctly guess human: {}/{} ({:.0f}%) ; correctly guess bot: {}/{} ({:.0f}%)'.format(correctlyHuman, test_data_size, (100.0 * correctlyHuman / test_data_size), correctlyBot, test_data_size, 100.0 * correctlyBot / test_data_size))
 

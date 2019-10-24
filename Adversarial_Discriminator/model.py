@@ -6,7 +6,7 @@ from _config import *
 from constants import *
 from numpy import tanh
 
-def loadAdversarial_Discriminator(hidden_size=hidden_size, output_size=2, n_layers=1, dropout=0, path=SAVE_PATH_DISCRIMINATOR):
+def loadAdversarial_Discriminator(hidden_size=hidden_size, output_size=1, n_layers=1, dropout=0, path=SAVE_PATH_DISCRIMINATOR):
     state_dict = load_latest_state_dict(path)
     voc = Voc('placeholder_name')
     voc.__dict__ = state_dict['voc_dict']
