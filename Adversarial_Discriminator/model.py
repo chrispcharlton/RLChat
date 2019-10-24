@@ -4,6 +4,7 @@ from seq2seq import load_latest_state_dict
 from seq2seq import Voc
 from _config import *
 from constants import *
+from numpy import tanh
 
 def loadAdversarial_Discriminator(hidden_size=hidden_size, output_size=2, n_layers=1, dropout=0, path=SAVE_PATH_DISCRIMINATOR):
     state_dict = load_latest_state_dict(path)
@@ -30,6 +31,7 @@ class Adversarial_Discriminator(nn.Module):
         self.gru = nn.GRU(hidden_size, hidden_size, n_layers,
                           dropout=(0 if n_layers == 1 else dropout), bidirectional=True)
         self.fc = nn.Linear(hidden_size, output_size)
+        self.softmax = nn.Sigmoid()
 
     def forward(self, state, hidden=None):
         # Convert word indexes to  embeddings
@@ -47,6 +49,8 @@ class Adversarial_Discriminator(nn.Module):
         output, hidden = self.gru(packed, hidden)
 
         output = self.fc(hidden[-1])
+        output = self.softmax(output)
+
         # Unpack padding
         # outputs, _ = nn.utils.rnn.pad_packed_sequence(fc_output)
         # Sum bidirectional GRU outputs
@@ -63,7 +67,7 @@ class Adversarial_Discriminator(nn.Module):
         :return: number 0 - 1 based on how human
         '''
         pred = self(state, hidden)
-        return pred.data.max(1, keepdim=True)[1]
+        return tanh(pred.flatten()[1].item())
 
     def _init_hidden(self, batch_size):
         hidden = torch.zeros(self.n_layers*(1+int(self.gru.bidirectional)), batch_size, self.hidden_size, device=device)
