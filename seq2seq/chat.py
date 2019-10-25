@@ -43,7 +43,7 @@ def chat_with_latest(savepath=SAVE_PATH):
     evaluateInput(encoder, decoder, searcher, voc)
 
 if __name__ == '__main__':
-    models_dir = 'cb_model/cb_model/Alexa/2-2_500'
+    models_dir = 'cb_model/Alexa/2-2_500/'
     model_path = os.path.join(BASE_DIR, 'data', 'save', models_dir)
     print(f'Loading latest model from {models_dir} for chat...')
     chat_with_latest(model_path)

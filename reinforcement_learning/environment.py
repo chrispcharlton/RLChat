@@ -4,18 +4,20 @@ from ADEM import loadADEM
 from seq2seq import indexesFromSentence
 from reinforcement_learning._config import MAX_LENGTH, max_turns_per_episode, state_length
 
+from data.amazon.dataset import standardise_sentence, AlexaDataset
+
+
 
 def chat(policy, env):
-    input_sentence = ''
     env.reset()
     env._state = []
 
-    while(1):
+    while 1:
         try:
             input_sentence = input('> ')
             if input_sentence == 'q':
                 break
-            input_sentence = env.sentence2tensor(input_sentence)
+            input_sentence = env.sentence2tensor(standardise_sentence(input_sentence))
             env.update_state(input_sentence)
             response, tensor = policy.response(env.state)
             env.update_state(tensor)
@@ -92,9 +94,10 @@ class Env(object):
 
     def calculate_reward(self, next_state):
         # TODO: reward should probably be a vector of whole sentence, with reward for each token
+
         # return 0.5 * (float(self.adem.predict(next_state).item() / 4) + float(self.AD(next_state))) # Both
-        return float(self.AD(next_state)) # Discriminator only
-        # return (float(self.adem.predict(next_state).item() / 4)) # ADEM only
+        # return float(self.AD(next_state)) # Discriminator only
+        return (float(self.adem.predict(next_state).item() / 4)) # ADEM only
 
     def is_done(self):
         return (len(set(self._state)) != len(self._state)) or (self.n_turns >= max_turns_per_episode)
