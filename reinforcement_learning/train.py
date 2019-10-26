@@ -210,23 +210,29 @@ def train(load_dir=SAVE_PATH, save_dir=SAVE_PATH_RL, num_episodes=10000, env=Non
             print("Episode {} completed, lasted {} turns -- Total Reward : {} -- Average DQN Loss : {}".format(i_episode, env.n_turns, ep_reward, ep_q_loss))
 
         # only save if optimisation has been done
-        if i_episode % save_every == 0 and policy_loss:
+        save_freq = 500# temp
+        if i_episode % save_freq == 0 and policy_loss:
             saveStateDict(episode + i_episode, encoder, decoder, encoder_optimizer, decoder_optimizer, policy_loss, voc, encoder.embedding, save_dir)
 
-        if i_episode % retrain_discriminator_every == 0:
-            print('Updating Discriminator...')
-            optimizer = torch.optim.Adam(env.AD.parameters(), lr=learning_rate)
-            criterion = nn.BCELoss()
-            for i in range(1):
-                loss = trainAdversarialDiscriminatorOnLatestSeq2Seq(env.AD, policy, voc, ad_data, criterion, optimizer, embedding, 'data/save/Adversarial_Discriminator/', i)
-            torch.save({
-                'iteration': i_episode,
-                'model': env.AD.state_dict(),
-                'opt': optimizer.state_dict(),
-                'loss': loss,
-                'voc_dict': voc.__dict__,
-                'embedding': embedding.state_dict()
-            }, os.path.join(save_dir, '{}_{}_AD.tar'.format(i_episode, 'epochs')))
+        discriminator_active = False  # temp
+        if discriminator_active:
+            if i_episode % retrain_discriminator_every == 0:
+                print('Updating Discriminator...')
+                optimizer = torch.optim.Adam(env.AD.parameters(), lr=learning_rate)
+                criterion = nn.BCELoss()
+                for i in range(1):
+                    loss = trainAdversarialDiscriminatorOnLatestSeq2Seq(env.AD, policy, voc, ad_data, criterion, optimizer,
+                                                                        embedding, 'data/save/Adversarial_Discriminator/', i)
+                torch.save({
+                    'iteration': i_episode,
+                    'model': env.AD.state_dict(),
+                    'opt': optimizer.state_dict(),
+                    'loss': loss,
+                    'voc_dict': voc.__dict__,
+                    'embedding': embedding.state_dict()
+                }, os.path.join(save_dir, '{}_{}_AD.tar'.format(i_episode, 'epochs')))
+
+
 
         # TODO: implement target/policy net (DDQN)?
         # if i_episode % TARGET_UPDATE == 0:

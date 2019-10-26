@@ -9,3 +9,4 @@ evaluate/
 slackchat.py
 requirements.txt
 *.tarOLD
+*.csv
