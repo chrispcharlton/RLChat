@@ -8,3 +8,4 @@ evaluate/
 *.DS_Store
 slackchat.py
 requirements.txt
+*.tarOLD
