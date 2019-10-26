@@ -50,8 +50,7 @@ class Env(object):
     def state_of_len(self, n):
         n = len(self._state) if n > len(self._state) else n
         state_seq = torch.cat(self._state[-n:], 1)
-        state_tens = torch.zeros((1, len(state_seq) + random.randint(0,5)), device=device, dtype=torch.long)
-        return state_tens
+        return state_seq
 
     def update_state(self, tensor):
         if len(self._state) >= self.state_length:
@@ -82,7 +81,7 @@ class Env(object):
     def step(self, action, teacher_response=None):
         self.n_turns += 2
         self.update_state(action)
-        reward = self.calculate_reward(self.state_of_len(2)) if teacher_response is None else float(1)
+        reward = self.calculate_reward(self.state_of_len(2)) # if teacher_response is None else float(1)
         done = self.is_done()
         if not done:
             next_utterance = self.user_sim(self.state) if teacher_response is None else self.sentence2tensor(teacher_response)
@@ -94,7 +93,6 @@ class Env(object):
 
     def calculate_reward(self, next_state):
         # TODO: reward should probably be a vector of whole sentence, with reward for each token
-
         # return 0.5 * (float(self.adem.predict(next_state).item() / 4) + float(self.AD(next_state))) # Both
         # return float(self.AD(next_state)) # Discriminator only
         return (float(self.adem.predict(next_state).item() / 4)) # ADEM only
