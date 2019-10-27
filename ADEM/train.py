@@ -96,7 +96,7 @@ def train(epochs=2000):
         for i, l in enumerate(loss):
             log.write(','.join([str(i+((epoch-1) * len(train_loader))),str(l)]))
             log.write('\n')
-        if epoch % save_every == 0:
+        if epoch % adem_save_every == 0:
             torch.save({
                 'iteration': epoch,
                 'model': model.state_dict(),

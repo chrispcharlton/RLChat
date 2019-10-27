@@ -1,5 +1,5 @@
 import argparse
-import colorama
+#import colorama
 from typing import Text
 
 from _requirements import *
@@ -183,7 +183,7 @@ if __name__ == '__main__':
 
                     rows[j][0] = u
                     rows[j][i +1] = r
-                    print(u, colorama.Fore.MAGENTA + r + colorama.Fore.RESET)
+                    #print(u, colorama.Fore.MAGENTA + r + colorama.Fore.RESET)
 
             with open(os.path.join(BASE_DIR, RESULTS, 'latest_results.csv'), mode='w') as f:
                 res_writer = csv.writer(f, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
