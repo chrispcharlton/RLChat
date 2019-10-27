@@ -32,7 +32,7 @@ def pad_with_zeroes(seq):
     return state_tensor
 
 class Env(object):
-    def __init__(self, voc, dataset, state_length=state_length):
+    def __init__(self, voc, dataset, state_length=state_length, reward_func='mixed'):
         print('Initialising Environment...')
         self.voc = voc
         self.state_length = state_length
@@ -41,6 +41,7 @@ class Env(object):
         self.AD = loadAdversarial_Discriminator()
         self.n_turns = 1
         self.user_sim_model = None
+        self.reward = reward_func
         self.reset()
 
     @property
@@ -92,10 +93,12 @@ class Env(object):
         return reward, next_state, done
 
     def calculate_reward(self, next_state):
-        # TODO: reward should probably be a vector of whole sentence, with reward for each token
-        # return 0.5 * (float(self.adem.predict(next_state).item() / 4) + float(self.AD(next_state))) # Both
-        # return float(self.AD(next_state)) # Discriminator only
-        return (float(self.adem.predict(next_state).item() / 4)) # ADEM only
+        if self.reward == 'mixed':
+            return 0.5 * (float(self.adem.predict(next_state).item() / 4) + float(self.AD(next_state))) # Both
+        elif self.reward == 'discriminator':
+            return float(self.AD(next_state)) # Discriminator only
+        elif self.reward == 'adem':
+            return (float(self.adem.predict(next_state).item() / 4)) # ADEM only
 
     def is_done(self):
         return (len(set(self._state)) != len(self._state)) or (self.n_turns >= max_turns_per_episode)

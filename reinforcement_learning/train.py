@@ -178,14 +178,14 @@ def model_ep(env, memory, policy, qnet, qnet_optimizer, encoder_optimizer, decod
     ep_q_loss = mean(ep_q_loss)
     return ep_q_loss, ep_reward, policy_loss
 
-def train(load_dir=SAVE_PATH, save_dir=SAVE_PATH_RL, num_episodes=10000, env=None, teacher_force_ratio=teacher_force_ratio):
+def train(load_dir=SAVE_PATH, save_dir=SAVE_PATH_RL, num_episodes=10000, env=None, teacher_force_ratio=teacher_force_ratio, reward='mixed'):
     episode, encoder, decoder, encoder_optimizer, decoder_optimizer, voc = loadModel(directory=load_dir)
     policy = RLGreedySearchDecoder(encoder, decoder, voc)
     embedding = nn.Embedding(voc.num_words, hidden_size)
     qnet = DQN(hidden_size, embedding).to(device)
     qnet_optimizer = torch.optim.Adam(qnet.parameters(), lr=learning_rate)
     memory = ReplayMemory(1000)
-    env = env if env else Env(voc, AlexaDataset())
+    env = env if env else Env(voc, AlexaDataset(), reward_func=reward)
     env.dataset.trimPairsToVocab(voc)
 
     # set episode number to 0 if starting from warm-started model. If loading rl-trained model continue from current number of eps

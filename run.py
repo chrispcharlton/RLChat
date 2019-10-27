@@ -1,5 +1,5 @@
 import argparse
-import colorama
+# import colorama
 from typing import Text
 
 from _requirements import *
@@ -86,12 +86,18 @@ if __name__ == '__main__':
         'model',
         choices=['seq2seq', 'adem', 'rl', 'discriminator'],
     )
+    train_parser.add_argument(
+        '-r',
+        '--reward',
+        choices=['mixed', 'adem', 'discriminator'],
+    )
 
     chat_parser = subparser.add_parser('chat')
     chat_parser.add_argument(
         'model',
         choices=['seq2seq', 'adem', 'rl'],
     )
+
 
     results_parser = subparser.add_parser('results')
     results_parser.add_argument(
@@ -123,7 +129,11 @@ if __name__ == '__main__':
             num_episodes = 10000
             load_dir = os.path.join(BASE_DIR, SAVE_PATH_SEQ2SEQ)
 
-            policy, env, total_rewards, dqn_losses = train(load_dir=load_dir, num_episodes=num_episodes)
+            if args.reward:
+                print(args.reward)
+                policy, env, total_rewards, dqn_losses = train(load_dir=load_dir, num_episodes=num_episodes, reward=args.reward)
+            else:
+                policy, env, total_rewards, dqn_losses = train(load_dir=load_dir, num_episodes=num_episodes)
 
     elif args.subparser_name == 'chat':
         """ 
@@ -167,9 +177,7 @@ if __name__ == '__main__':
 
             dataset = AlexaDataset()
             saves = [
-                '1000_checkpoint.tar',
-                'Discriminator_1000_checkpoint.tar',
-                '1000_checkpoint_mixed_reward.tar',
+                '100_checkpoint.tar',
             ]
 
             for i, save in enumerate(saves):
@@ -183,7 +191,7 @@ if __name__ == '__main__':
 
                     rows[j][0] = u
                     rows[j][i +1] = r
-                    print(u, colorama.Fore.MAGENTA + r + colorama.Fore.RESET)
+                    # print(u, colorama.Fore.MAGENTA + r + colorama.Fore.RESET)
 
             with open(os.path.join(BASE_DIR, RESULTS, 'latest_results.csv'), mode='w') as f:
                 res_writer = csv.writer(f, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
