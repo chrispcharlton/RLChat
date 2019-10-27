@@ -7,7 +7,7 @@ import os
 
 
 Pair = namedtuple('Pair', ('utterance', 'response', 'rating', 'conversation_id', 'opening_line'))
-numeric_ratings = {'Not Good':1, 'Passable':2, 'Good':3, 'Excellent':4}
+numeric_ratings = {'Poor':0, 'Not Good':1, 'Passable':2, 'Good':3, 'Excellent':4}
 
 
 def standardise_sentence(sentence):
@@ -23,7 +23,7 @@ def load_alexa_pairs(fname='train.json', dir='./data/amazon'):
         first = True
         for utterance, response in zip(conversation['content'][:-1],conversation['content'][1:]):
             u_sentence, r_sentence = standardise_sentence(utterance['message']), standardise_sentence(response['message'])
-            if response['turn_rating'] not in ['', 'Poor'] and len(u_sentence.split(' ')) < MAX_LENGTH and len(r_sentence.split(' ')) < MAX_LENGTH:
+            if response['turn_rating'] not in [''] and len(u_sentence.split(' ')) < MAX_LENGTH and len(r_sentence.split(' ')) < MAX_LENGTH:
                 pairs.append(Pair(utterance=u_sentence,
                                   response=r_sentence,
                                   rating=numeric_ratings[response['turn_rating']],
@@ -92,7 +92,9 @@ class AlexaDataset(Dataset):
         return [p for p in self.data if p.conversation_id == id]
 
     def random_conversation(self):
-        id = random.choice(self.ids)
+        id = 0
+        while id == 0:
+            id = random.choice(self.ids)
         return [p for p in self.data if p.conversation_id == id]
 
     def _rare_words(self, threshold=3):
@@ -125,10 +127,22 @@ class AlexaDataset(Dataset):
         print('=============={}=============='.format(len(self.data)-len(keepPairs)))
         self.data = keepPairs
 
+    def add_scrambled_training_data(self, addition_rate=0.2, rating='Poor'):
+        pairs = []
+        for i in range(int(len(self.data) * addition_rate)):
+            utterance = random.choice(self.data).utterance
+            response = random.choice(self.data).response
+            pairs.append(Pair(utterance=utterance,
+                              response=response,
+                              rating=numeric_ratings[rating],
+                              conversation_id='0',
+                              opening_line=False))
+        self.data += pairs
+
 if __name__ == '__main__':
     data = AlexaDataset(rare_word_threshold=2)
     print(len(data))
     print(data[0])
     c = data.get_conversation('t_bde29ce2-4153-4056-9eb7-f4ad710505fe')
     s = data.random_conversation()
-
+    data.add_scrambled_training_data()
