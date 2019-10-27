@@ -23,10 +23,10 @@ def prepare_batch(batch, voc):
     lengths, perm_idx = lengths.sort(0, descending=True)
     seq_tensor = seq_tensor[perm_idx]
 
-    target = batch.rating.type(torch.float) / 4
+    target = batch.rating.type(torch.long)
     target = target[perm_idx].to(device)
 
-    return seq_tensor, target.unsqueeze(1)
+    return seq_tensor, target
 
 
 def train_epoch(epoch, model, optimizer, criterion, data_loader, voc):
@@ -63,7 +63,7 @@ def test_epoch(model, data_loader, voc):
 
 def train(epochs=2000):
     BATCH_SIZE = 256
-    output_size = 1
+    output_size = 5
 
     ##TODO: shuffle train/test between epochs as some words are exclusive between the pre-defined sets
 
@@ -82,7 +82,7 @@ def train(epochs=2000):
 
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
     # criterion = nn.CrossEntropyLoss()
-    criterion = nn.MSELoss()
+    criterion = nn.CrossEntropyLoss()
 
     log = open(os.path.join(BASE_DIR, SAVE_PATH_ADEM, 'adem_training.csv'.format('epochs')), 'a')
     log.write('batch,loss\n')
@@ -91,6 +91,7 @@ def train(epochs=2000):
 
 
     for epoch in range(1, epochs + 1):
+
         loss = train_epoch(epoch, model, optimizer, criterion, train_loader, voc)
         for i, l in enumerate(loss):
             log.write(','.join([str(i+((epoch-1) * len(train_loader))),str(l)]))
