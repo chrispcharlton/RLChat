@@ -164,7 +164,7 @@ def model_ep(env, memory, policy, qnet, qnet_optimizer, encoder_optimizer, decod
         length += 1
         action, prob = policy(state)
         if action[:,-1] != EOS_token:
-            action = torch.cat([action, torch.tensor([[(EOS_token)]],device=device)], dim=1)
+            action = torch.cat([action, torch.tensor([[(EOS_token)]], device=device)], dim=1)
         prob = torch.tensor([torch.mean(prob)], device=device)
         reward, next_state, done = env.step(action)
         ep_reward += reward
@@ -217,8 +217,7 @@ def train(load_dir=SAVE_PATH, save_dir=SAVE_PATH_RL, num_episodes=10000, env=Non
         if i_episode % save_every == 0 and policy_loss:
             saveStateDict(episode + i_episode, encoder, decoder, encoder_optimizer, decoder_optimizer, policy_loss, voc, encoder.embedding, save_dir, reward)
 
-        discriminator_active = False  # temp
-        if discriminator_active:
+        if reward != 'adem':
             if i_episode % retrain_discriminator_every == 0:
                 print('Updating Discriminator...')
                 optimizer = torch.optim.Adam(env.AD.parameters(), lr=learning_rate)

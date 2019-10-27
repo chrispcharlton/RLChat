@@ -21,7 +21,7 @@ def load_latest_state_dict(savepath):
     return torch.load(open(os.path.join(savepath, max_save), 'rb'), map_location=device)
 
 
-def saveStateDict(episode, encoder, decoder, encoder_optimizer, decoder_optimizer, loss, voc, embedding, directory,reward=''):
+def saveStateDict(episode, encoder, decoder, encoder_optimizer, decoder_optimizer, loss, voc, embedding, directory,name):
     if not os.path.exists(directory):
         os.makedirs(directory)
     print(" ".join(["Saving model state as", "{} checkpoint".format(episode)]))
@@ -34,7 +34,7 @@ def saveStateDict(episode, encoder, decoder, encoder_optimizer, decoder_optimize
         'loss': loss,
         'voc_dict': voc.__dict__,
         'embedding': embedding.state_dict()
-    }, os.path.join(directory, '{}_{}_{}.tar'.format(episode, 'checkpoint',reward)))
+    }, os.path.join(directory, '{}_{}_{}.tar'.format(episode, 'checkpoint', name)))
 
 
 def loadModel(hidden_size=hidden_size, encoder_n_layers=encoder_n_layers, decoder_n_layers=decoder_n_layers, dropout=dropout, attn_model=attn_model, learning_rate=learning_rate, decoder_learning_ratio=decoder_learning_ratio,
