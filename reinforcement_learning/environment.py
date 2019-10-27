@@ -82,7 +82,7 @@ class Env(object):
     def step(self, action, teacher_response=None):
         self.n_turns += 2
         self.update_state(action)
-        reward = self.calculate_reward(self.state_of_len(2)) # if teacher_response is None else float(1)
+        reward = self.calculate_reward(self.state_of_len(2)) if teacher_response is None else float(2)
         done = self.is_done()
         if not done:
             next_utterance = self.user_sim(self.state) if teacher_response is None else self.sentence2tensor(teacher_response)

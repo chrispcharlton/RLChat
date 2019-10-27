@@ -32,8 +32,9 @@ class ADEM(nn.Module):
         #   because our input size is a word embedding with number of features == hidden_size
         self.gru = nn.GRU(hidden_size, hidden_size, n_layers,
                           dropout=(0 if n_layers == 1 else dropout), bidirectional=True)
-        self.fc1 = nn.Linear(hidden_size*2, hidden_size)
-        self.fc2 = nn.Linear(hidden_size, output_size)
+        # self.fc1 = nn.Linear(hidden_size*2, hidden_size)
+        # self.fc2 = nn.Linear(hidden_size, output_size)
+        self.fc = nn.Linear(hidden_size, output_size)
 
     def forward(self, state, hidden=None):
         # Convert word indexes to  embeddings
@@ -48,8 +49,9 @@ class ADEM(nn.Module):
         # Forward pass through GRU
         self.gru.flatten_parameters()
         output, hidden = self.gru(packed, hidden)
-        output = self.fc1(torch.cat([hidden[0], hidden[1]], dim=1))
-        output = self.fc2(output)
+        # output = self.fc1(torch.cat([hidden[0], hidden[1]], dim=1))
+        # output = self.fc2(output)
+        output = self.fc(hidden[-1])
         # Unpack padding
         # outputs, _ = nn.utils.rnn.pad_packed_sequence(output)
         # Sum bidirectional GRU outputs
