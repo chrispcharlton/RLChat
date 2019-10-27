@@ -69,7 +69,8 @@ def train(epochs=2000):
 
     voc = Voc.from_dataset(AlexaDataset(rare_word_threshold=0))
 
-    train_data = AlexaDataset(rare_word_threshold=0)
+    train_data = AlexaDataset('train.json', rare_word_threshold=0)
+    train_data.add_pairs_from_json('valid_freq.json')
     train_data.add_scrambled_training_data(rating='Poor')
     train_data.add_scrambled_training_data(rating='Not Good')
     train_loader = DataLoader(train_data, batch_size=BATCH_SIZE, shuffle=True)

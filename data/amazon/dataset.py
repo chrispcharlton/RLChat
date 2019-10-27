@@ -135,10 +135,9 @@ class AlexaDataset(Dataset):
             pairs.append(Pair(utterance=utterance,
                               response=response,
                               rating=numeric_ratings[rating],
-                              conversation_id=0,
+                              conversation_id='0',
                               opening_line=False))
         self.data += pairs
-
 
 if __name__ == '__main__':
     data = AlexaDataset(rare_word_threshold=2)
