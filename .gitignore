@@ -10,3 +10,4 @@ slackchat.py
 requirements.txt
 *.tarOLD
 *.csv
+*.pyc
