@@ -22,9 +22,10 @@ def load_alexa_pairs(fname='train.json', dir='./data/amazon'):
     for c_id, conversation in data.items():
         first = True
         for utterance, response in zip(conversation['content'][:-1],conversation['content'][1:]):
-            if response['turn_rating'] not in ['', 'Poor'] and len(utterance['message'].split(' ')) < MAX_LENGTH and len(response['message'].split(' ')) < MAX_LENGTH:
-                pairs.append(Pair(utterance=standardise_sentence(utterance['message']),
-                                  response=standardise_sentence(response['message']),
+            u_sentence, r_sentence = standardise_sentence(utterance['message']), standardise_sentence(response['message'])
+            if response['turn_rating'] not in ['', 'Poor'] and len(u_sentence.split(' ')) < MAX_LENGTH and len(r_sentence.split(' ')) < MAX_LENGTH:
+                pairs.append(Pair(utterance=u_sentence,
+                                  response=r_sentence,
                                   rating=numeric_ratings[response['turn_rating']],
                                   conversation_id=c_id,
                                   opening_line=first))

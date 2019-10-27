@@ -47,8 +47,9 @@ class ADEM(nn.Module):
         # Forward pass through GRU
         self.gru.flatten_parameters()
         output, hidden = self.gru(packed, hidden)
-
-        output = self.fc(hidden[-1])
+        output, _ =  nn.utils.rnn.pad_packed_sequence(output)
+        output = output[:, :, :self.hidden_size] + output[:, :, self.hidden_size:]
+        output = self.fc(output)
         # Unpack padding
         # outputs, _ = nn.utils.rnn.pad_packed_sequence(fc_output)
         # Sum bidirectional GRU outputs

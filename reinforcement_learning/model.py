@@ -37,11 +37,6 @@ class RLGreedySearchDecoder(nn.Module):
             all_scores = torch.cat((all_scores, decoder_scores), dim=0)
             # Prepare current token to be next decoder input (add a dimension)
             decoder_input = torch.unsqueeze(decoder_input, 0)
-            try:
-                if decoder_input.item() == EOS_token:
-                    break
-            except:
-                pass
         # Return collections of word tokens and scores
         return all_tokens.view(batch_size, -1), all_scores.view(batch_size, -1)
 
