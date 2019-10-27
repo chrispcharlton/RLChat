@@ -215,7 +215,7 @@ def train(load_dir=SAVE_PATH, save_dir=SAVE_PATH_RL, num_episodes=10000, env=Non
 
         # only save if optimisation has been done
         if i_episode % save_every == 0 and policy_loss:
-            saveStateDict(episode + i_episode, encoder, decoder, encoder_optimizer, decoder_optimizer, policy_loss, voc, encoder.embedding, save_dir)
+            saveStateDict(episode + i_episode, encoder, decoder, encoder_optimizer, decoder_optimizer, policy_loss, voc, encoder.embedding, save_dir, reward)
 
         discriminator_active = False  # temp
         if discriminator_active:
