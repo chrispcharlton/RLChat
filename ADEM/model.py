@@ -55,7 +55,6 @@ class ADEM(nn.Module):
         # Sum bidirectional GRU outputs
         # outputs = outputs[:, :, :self.hidden_size] + outputs[:, : ,self.hidden_size:]
         # Return output and final hidden state
-        output = self.fc2(output)
         return output
 
     def predict(self, state, hidden=None):
