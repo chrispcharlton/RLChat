@@ -36,7 +36,7 @@ class ReplayMemory(object):
         return len(self.memory)
 
 
-def seqs_to_padded_tensors(seqs, max_length=MAX_LENGTH+1):
+def seqs_to_padded_tensors(seqs, max_length=None):
     lengths = torch.tensor([len(s) if s is not None else 0 for s in seqs], device=device, dtype=torch.long)
     max_length = max_length if max_length is not None else lengths.max()
     state_tensor = torch.zeros((len(seqs), max_length), device=device).long()
