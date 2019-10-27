@@ -51,10 +51,11 @@ class ADEM(nn.Module):
         output = self.fc1(torch.cat([hidden[0], hidden[1]], dim=1))
         output = self.fc2(output)
         # Unpack padding
-        # outputs, _ = nn.utils.rnn.pad_packed_sequence(fc_output)
+        # outputs, _ = nn.utils.rnn.pad_packed_sequence(output)
         # Sum bidirectional GRU outputs
         # outputs = outputs[:, :, :self.hidden_size] + outputs[:, : ,self.hidden_size:]
         # Return output and final hidden state
+        output = self.fc2(output)
         return output
 
     def predict(self, state, hidden=None):

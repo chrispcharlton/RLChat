@@ -9,7 +9,7 @@ batch_size = 256 if device == 'cuda' else 64
 learning_rate = 0.0001
 decoder_learning_ratio = 5.0
 
-save_every = 500
+save_every = 1000
 
 
 # Default word tokens
