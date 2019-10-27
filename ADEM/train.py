@@ -70,11 +70,13 @@ def train(epochs=2000):
     voc = Voc.from_dataset(AlexaDataset(rare_word_threshold=0))
 
     train_data = AlexaDataset(rare_word_threshold=0)
-
+    train_data.add_scrambled_training_data(rating='Poor')
+    train_data.add_scrambled_training_data(rating='Not Good')
     train_loader = DataLoader(train_data, batch_size=BATCH_SIZE, shuffle=True)
 
     test_data = AlexaDataset('test_freq.json', rare_word_threshold=3)
-
+    test_data.add_scrambled_training_data(rating='Poor')
+    test_data.add_scrambled_training_data(rating='Not Good')
     test_loader = DataLoader(test_data, batch_size=BATCH_SIZE)
 
     embedding = nn.Embedding(voc.num_words, hidden_size)
